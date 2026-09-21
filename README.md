@@ -129,7 +129,7 @@ If nobody approves in time, the answer is no. Keep the approval directory where 
 - [Configuration reference](docs/configuration.md): policy format, SPL rules, approval modes, audit format, environment variables, CLI
 - [Live verification](docs/verification.md): what was tested against a real Splunk instance and the results
 - [Security policy](SECURITY.md): how to report a vulnerability
-- **Türkçe:** [Nasıl çalışır](docs/nasil-calisir.md) · [Akış şeması](docs/calisma-mantigi.svg)
+- [How it works](docs/how-it-works.md): the reasoning behind each check, with FAQ · [Flow diagram](docs/how-it-works.svg)
 
 ## Development
 
