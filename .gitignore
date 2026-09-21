@@ -9,3 +9,4 @@ guard-audit.jsonl
 *.jsonl
 .pytest_cache/
 .ruff_cache/
+guard-approvals/

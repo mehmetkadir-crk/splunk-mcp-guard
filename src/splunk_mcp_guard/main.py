@@ -1,6 +1,9 @@
 """CLI entry point.
 
     splunk-mcp-guard --policy policy/strict.yaml --backend examples/backend.deslicer.json
+    splunk-mcp-guard pending  [--policy ...]        # out-of-band approvals waiting
+    splunk-mcp-guard approve <id> [--policy ...]
+    splunk-mcp-guard reject  <id> [--policy ...]
 
 The backend file is a standard MCP config (``{"mcpServers": {...}}``) describing
 how to launch or reach the *real* Splunk MCP server.  The guard starts it,
@@ -49,7 +52,49 @@ def build_parser_from_env() -> SplunkParser | None:
     )
 
 
+_APPROVAL_CMDS = {"pending", "approve", "reject"}
+
+
+def _approval_cli(argv: list[str]) -> int:
+    """``pending`` / ``approve <id>`` / ``reject <id>`` — run by a human in a terminal."""
+    from .approval import decide, list_pending
+
+    ap = argparse.ArgumentParser(prog=f"splunk-mcp-guard {argv[0]}")
+    if argv[0] != "pending":
+        ap.add_argument("id")
+    ap.add_argument("--policy", help="policy YAML; its approval.dir is used")
+    ap.add_argument("--dir", help="approval directory (overrides policy / GUARD_APPROVAL_DIR)")
+    ap.add_argument("--by", help="name recorded as the approver")
+    ns = ap.parse_args(argv[1:])
+
+    d = ns.dir or _env("GUARD_APPROVAL_DIR")
+    if not d and ns.policy:
+        try:
+            d = load_policy(ns.policy).approval.dir
+        except (PolicyError, OSError) as e:
+            print(f"[guard] policy error: {e}", file=sys.stderr)
+            return 2
+    d = d or "./guard-approvals"
+
+    if argv[0] == "pending":
+        rows = list_pending(d)
+        if not rows:
+            print(f"no pending approvals in {Path(d).resolve()}")
+            return 0
+        for r in rows:
+            flag = " (expired)" if r.get("expired") else ""
+            print(f"{r['id']}{flag}  {r.get('principal')}  {r.get('tool')}  "
+                  f"{json.dumps(r.get('args'), ensure_ascii=False, default=str)[:200]}")
+        return 0
+    print(decide(d, ns.id, argv[0], by=ns.by))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] in _APPROVAL_CMDS:
+        return _approval_cli(argv)
+
     ap = argparse.ArgumentParser(prog="splunk-mcp-guard",
                                  description="Policy-enforcing proxy in front of any Splunk MCP server.")
     ap.add_argument("--policy", required=True, help="policy YAML (see policy/strict.yaml)")
@@ -72,6 +117,9 @@ def main(argv: list[str] | None = None) -> int:
     audit_override = _env("GUARD_AUDIT_PATH")
     if audit_override:
         policy.audit.path = audit_override
+    approval_override = _env("GUARD_APPROVAL_DIR")
+    if approval_override:
+        policy.approval.dir = approval_override
 
     if ns.print_policy:
         for name, role in policy.roles.items():
@@ -112,7 +160,8 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"[guard] policy={policy.profile} ({ns.policy}) default_role={policy.default_role} "
           f"parser={'on' if parser else 'off'} transport={ns.transport} "
-          f"audit={Path(policy.audit.path).resolve()}", file=sys.stderr)
+          f"audit={Path(policy.audit.path).resolve()} "
+          f"approval={policy.approval.mode}:{Path(policy.approval.dir).resolve()}", file=sys.stderr)
 
     if ns.transport == "stdio":
         # no banner: stdout belongs to the JSON-RPC stream

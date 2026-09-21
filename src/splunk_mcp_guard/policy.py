@@ -116,6 +116,20 @@ class AuditPolicy:
 
 
 @dataclass
+class ApprovalPolicy:
+    """How ``approve``-class tools obtain a human decision.
+
+    mode: ``elicit`` (MCP elicitation only), ``file`` (out-of-band approval
+    directory only), ``auto`` (try elicitation, fall back to the directory when
+    the client does not support it).  Anything else, and any failure, is a no.
+    """
+    mode: str = "auto"
+    dir: str = "./guard-approvals"
+    timeout_seconds: int = 120
+    poll_seconds: float = 1.0
+
+
+@dataclass
 class OutputPolicy:
     tag_untrusted: bool = True
     detect_injection: bool = True
@@ -133,6 +147,7 @@ class Policy:
     principals: dict[str, str]
     identity: IdentityPolicy
     preflight: PreflightPolicy
+    approval: ApprovalPolicy
     audit: AuditPolicy
     output: OutputPolicy
     source_path: str | None = None
@@ -260,6 +275,16 @@ def _build(raw: dict[str, Any], source: str | None) -> Policy:
         redact_arg_keys=[str(k).lower() for k in au_raw.get("redact_arg_keys", ["password", "token", "secret", "authorization"])],
     )
 
+    ap_raw = raw.get("approval", {}) or {}
+    approval = ApprovalPolicy(
+        mode=str(ap_raw.get("mode", "auto")).lower(),
+        dir=str(ap_raw.get("dir", "./guard-approvals")),
+        timeout_seconds=int(ap_raw.get("timeout_seconds", 120)),
+        poll_seconds=float(ap_raw.get("poll_seconds", 1.0)),
+    )
+    if approval.mode not in {"elicit", "file", "auto"}:
+        raise PolicyError(f"approval.mode must be elicit|file|auto, got {approval.mode!r}")
+
     out_raw = raw.get("output", {}) or {}
     output = OutputPolicy(
         tag_untrusted=bool(out_raw.get("tag_untrusted", True)),
@@ -277,6 +302,7 @@ def _build(raw: dict[str, Any], source: str | None) -> Policy:
         principals=principals,
         identity=identity,
         preflight=preflight,
+        approval=approval,
         audit=audit,
         output=output,
         source_path=source,

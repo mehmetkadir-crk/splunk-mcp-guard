@@ -14,9 +14,9 @@
         "GUARD_SPLUNK_HOST": "localhost",
         "GUARD_SPLUNK_PORT": "8089",
         "GUARD_SPLUNK_VERIFY_SSL": "false",
-        "GUARD_SPLUNK_USERNAME": "kadir",
-        "GUARD_SPLUNK_PASSWORD": "<parolan>",
-        "GUARD_ALLOW_OVERPRIVILEGED": "1"
+        "GUARD_SPLUNK_USERNAME": "mcp_svc",
+        "GUARD_SPLUNK_PASSWORD": "<service account password>",
+        "GUARD_APPROVAL_DIR": "D:\\splunk mcp proje\\guard-approvals"
       }
     }
   }

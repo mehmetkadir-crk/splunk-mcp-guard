@@ -117,7 +117,23 @@ Also enforced: index scope per role, `index=*` ban, `earliest` floor (relative t
 
 ## Human approval
 
-`approve`-class tools trigger an MCP **elicitation**: the client shows the person a prompt with the tool name and arguments. No support, decline, cancel, or timeout all mean **no**. Check that your client supports elicitation; if it does not, `approve` behaves like `deny`.
+`approve`-class tools need an explicit yes from a person. Two ways to get one, selected by `approval.mode`:
+
+| mode | What happens |
+|---|---|
+| `elicit` | MCP **elicitation**: the client shows the person the tool name and arguments and asks. Clients without elicitation (Claude Desktop answers `Method not found` at the time of writing) make `approve` behave like `deny`. |
+| `file` | **Out-of-band**: the guard writes `<approval.dir>/<id>.request.json` and waits up to `timeout_seconds`. A person runs `splunk-mcp-guard approve <id>` (or `reject`) in a terminal. |
+| `auto` (default) | Try elicitation; if the client cannot elicit, fall back to the directory. A person declining through the client is final. |
+
+```bash
+splunk-mcp-guard pending --policy policy/engineer.yaml     # what is waiting
+splunk-mcp-guard approve 1758400000-a1b2c3 --by kadir
+splunk-mcp-guard reject  1758400000-a1b2c3
+```
+
+Everything that is not an explicit yes — no support, decline, cancel, timeout, unreadable decision, id mismatch — is a **no**, audited as `approve-deny`.
+
+> **Trust boundary.** Whoever can write to `approval.dir` is the approver. Keep it outside any folder the model's own tools can write to; an agent with shell access there could approve itself. `GUARD_APPROVAL_DIR` overrides the path from the environment.
 
 ## Audit
 
@@ -131,9 +147,28 @@ One JSON line per decision:
 
 Three denials from one principal inside the window produce a `kind: alert` line. Set `audit.hec_url` and `GUARD_HEC_TOKEN` to ship events to Splunk itself and alert on `sourcetype=mcp:guard`.
 
+## Verified against a live Splunk
+
+Splunk Enterprise 10 (single instance), deslicer/mcp-for-splunk as backend, Claude Desktop as client, `strict` profile, backend account `mcp_svc` with a custom `mcp_reader` role (inherits `user`, no `can_delete`/`admin_all_objects`):
+
+| Test | Result |
+|---|---|
+| Startup with an admin backend account | refused (`offending: [admin_all_objects, edit_roles, edit_user]`); `mcp_svc` passes with `offending: []` |
+| `tools/list` | 41 of 57 tools visible; every write/delete tool hidden |
+| `index=main earliest=-1h \| delete` | rejected by both the local tokenizer and Splunk's parser (`insufficient privileges to delete events`) |
+| `\| outputlookup` inside a `[subsearch]` | rejected |
+| `index=*` | rejected |
+| `index=_internal` outside the role's scope | rejected **before** reaching Splunk |
+| three denials in five minutes | `kind: alert` line written |
+| `create_saved_search` under `engineer`, client without elicitation | `approve-deny` (fail closed); with `mode: auto` the request waits in the approval directory instead |
+| Structured tool results | `_guard` notice attached, secrets redacted in both text and structured channels |
+
+A Splunk RBAC detail worth knowing: a role that inherits `user` inherits `srchIndexesAllowed = *`, so the indexes you tick on your custom role are *added* to that, not a narrowing. The guard's per-role `indexes:` list is the narrowing.
+
 ## What this does not do
 
 - It cannot see inside a saved search, so `execute_saved_search` is `deny` in strict and `approve` in engineer.
+- Out-of-band approval is only as strong as the write permissions on the approval directory.
 - Output redaction and injection detection are pattern-based. They raise the cost of cheap attacks; they are not a filter you can rely on.
 - The parser needs credentials. Without them the local tokenizer still runs, and the audit line says so.
 - If you bind HTTP to anything but loopback, put an authenticating proxy in front and use `identity.source: header`.

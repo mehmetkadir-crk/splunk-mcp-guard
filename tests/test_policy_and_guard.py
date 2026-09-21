@@ -153,7 +153,8 @@ async def test_approve_requires_human_yes(tmp_path):
 
 
 async def test_approve_fails_closed_without_elicitation(tmp_path):
-    g, _ = make_guard(tmp_path, principal="kadir", principals={"kadir": "engineer"})
+    g, p = make_guard(tmp_path, principal="kadir", principals={"kadir": "engineer"})
+    p.approval.mode = "elicit"  # no out-of-band fallback configured
     ctx = FakeCtx("create_alert", {"name": "x"})
     ctx.fastmcp_context = None  # client with no elicitation support
     with pytest.raises(ToolError):
@@ -205,3 +206,94 @@ async def test_structured_content_is_guarded_too(tmp_path):
     assert sc["_guard"]["redactions"] >= 1 and "warning" in sc["_guard"]
     ev = audit_lines(tmp_path)[-1]
     assert ev["extra"]["redactions"] >= 1 and ev["extra"]["injection_hits"]
+
+
+# ------------------------------------------------------------ out-of-band approval
+
+import asyncio  # noqa: E402
+
+from splunk_mcp_guard.approval import decide, list_pending  # noqa: E402
+
+
+class NoElicitCtx:
+    async def elicit(self, *a, **kw):
+        raise RuntimeError("MCPError: Method not found")
+
+
+def make_engineer(tmp_path, mode="auto", timeout=3):
+    g, p = make_guard(tmp_path, principal="kadir", principals={"kadir": "engineer"})
+    p.approval.mode = mode
+    p.approval.dir = str(tmp_path / "approvals")
+    p.approval.timeout_seconds = timeout
+    p.approval.poll_seconds = 0.05
+    return g, p
+
+
+async def test_auto_falls_back_to_file_and_human_approves(tmp_path):
+    g, p = make_engineer(tmp_path)
+    ctx = FakeCtx("create_alert", {"name": "x"})
+    ctx.fastmcp_context = NoElicitCtx()
+
+    async def human():
+        # wait for the request file, then approve it from "another terminal"
+        for _ in range(100):
+            pend = list_pending(p.approval.dir)
+            if pend:
+                return decide(p.approval.dir, pend[0]["id"], "approve", by="tester")
+            await asyncio.sleep(0.02)
+        raise AssertionError("request file never appeared")
+
+    res, status = await asyncio.gather(g.on_call_tool(ctx, forward_ok), human())
+    assert res.content and status.startswith("approve:")
+    ev = audit_lines(tmp_path)[-1]
+    assert ev["decision"] == "approve-ok"
+    assert not list_pending(p.approval.dir)  # cleaned up
+
+
+async def test_file_reject_and_timeout_are_denies(tmp_path):
+    g, p = make_engineer(tmp_path, mode="file", timeout=1)
+    ctx = FakeCtx("create_alert", {"name": "x"})
+
+    async def human_rejects():
+        for _ in range(100):
+            pend = list_pending(p.approval.dir)
+            if pend:
+                return decide(p.approval.dir, pend[0]["id"], "reject")
+            await asyncio.sleep(0.02)
+
+    with pytest.raises(ToolError) as e:
+        await asyncio.gather(g.on_call_tool(ctx, forward_ok), human_rejects())
+    assert "rejected out-of-band" in str(e.value)
+
+    with pytest.raises(ToolError) as e:  # nobody answers
+        await g.on_call_tool(ctx, forward_ok)
+    assert "no decision within" in str(e.value)
+    assert audit_lines(tmp_path)[-1]["decision"] == "approve-deny"
+
+
+async def test_elicit_only_mode_does_not_touch_directory(tmp_path):
+    g, p = make_engineer(tmp_path, mode="elicit")
+    ctx = FakeCtx("create_alert", {"name": "x"})
+    ctx.fastmcp_context = NoElicitCtx()
+    with pytest.raises(ToolError) as e:
+        await g.on_call_tool(ctx, forward_ok)
+    assert "does not support elicitation" in str(e.value)
+    assert not Path(p.approval.dir).exists()
+
+
+async def test_human_decline_via_elicitation_is_final(tmp_path):
+    # a human saying no through the client must not get a second chance via the directory
+    g, p = make_engineer(tmp_path, mode="auto")
+    with pytest.raises(ToolError) as e:
+        await g.on_call_tool(FakeCtx("create_alert", {"name": "x"}, elicit_answer="reject"), forward_ok)
+    assert "human chose" in str(e.value)
+    assert not Path(p.approval.dir).exists()
+
+
+def test_cli_pending_and_decide(tmp_path, capsys):
+    from splunk_mcp_guard.main import main
+    d = tmp_path / "ap"
+    assert main(["pending", "--dir", str(d)]) == 0
+    assert "no pending" in capsys.readouterr().out
+    assert main(["approve", "nope", "--dir", str(d)]) == 0
+    assert "no pending request" in capsys.readouterr().out

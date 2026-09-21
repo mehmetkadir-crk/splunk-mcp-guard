@@ -100,7 +100,8 @@ class GuardMiddleware(Middleware):
 
         if cls is ToolClass.APPROVE:
             ok, detail = await request_approval(
-                context.fastmcp_context, principal=principal, tool=tool, args=args
+                context.fastmcp_context, principal=principal, tool=tool, args=args,
+                policy=self.policy.approval,
             )
             if not ok:
                 self.audit.decision(principal=principal, role=role.name, tool=tool,

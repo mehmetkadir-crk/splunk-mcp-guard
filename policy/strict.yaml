@@ -252,6 +252,17 @@ audit:
   hec_url: null               # e.g. https://splunk.local:8088 ; token from GUARD_HEC_TOKEN
   redact_arg_keys: [password, token, secret, authorization, splunk_password]
 
+approval:
+  # How approve-class tools reach a human.
+  #   elicit : MCP elicitation only (client must support it)
+  #   file   : out-of-band directory only (splunk-mcp-guard approve <id>)
+  #   auto   : elicitation first, directory when the client cannot elicit
+  # The directory is a trust boundary: keep it where the model's own tools
+  # cannot write, or the model can approve itself.  Override: GUARD_APPROVAL_DIR
+  mode: auto
+  dir: ./guard-approvals
+  timeout_seconds: 120
+
 output:
   tag_untrusted: true
   detect_injection: true
