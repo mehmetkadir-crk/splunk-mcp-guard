@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any
 
-from .policy import SplPolicy
+from .policy import HARD_DENY_COMMANDS, SplPolicy
 
 _REL_TIME = re.compile(r"^\s*(?:(-?\d+)([smhdwMyQ]|mon|min|sec|hr|day|week|month|year|quarter)s?)?(?:@[\w]+)?\s*$")
 _UNIT_SECONDS = {
@@ -114,12 +114,24 @@ def _walk(text: str, out: set[str]) -> None:
             out.add(word)
 
 
+# Words that start a command even at the very beginning of a query with no
+# leading pipe.  Anything else there is a search term ("error | head 10" is a
+# search for the word "error").  Every hard-denied command is included, so a
+# backend that forwards "delete ..." verbatim is still caught.
+_FIRST_STAGE_COMMANDS = HARD_DENY_COMMANDS | frozenset({
+    "search", "tstats", "mstats", "mcatalog", "inputlookup", "inputcsv", "makeresults",
+    "metadata", "metasearch", "datamodel", "from", "pivot", "dbinspect", "eventcount",
+    "multisearch", "loadjob", "savedsearch", "gentimes", "rest", "set", "append",
+    "union", "tstats", "walklex", "typeahead", "history", "audit",
+})
+
+
 def _looks_like_command(word: str, stage: str) -> bool:
-    # first stage: `search index=x` vs `index=x` vs `tstats ...`
+    # first stage: `search index=x` vs `index=x` vs `tstats ...` vs `error | head`
     rest = stage[len(word):].lstrip()
     if rest.startswith("="):
         return False  # it's a field=value term, implicit search
-    return True
+    return word in _FIRST_STAGE_COMMANDS
 
 
 def _match_bracket(text: str, start: int) -> int:

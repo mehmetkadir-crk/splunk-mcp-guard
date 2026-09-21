@@ -97,6 +97,40 @@ Real screenshots from a fresh install (cloned from this repository, set up with 
 
 `result_sha256: null` means Splunk returned nothing: the search never ran. More tests are listed in [docs/verification.md](docs/verification.md).
 
+## Try it yourself
+
+After setup with the `strict` profile, ask your assistant to run these searches, for example *"Run this Splunk search exactly: `index=main | delete`"*. The model may hesitate or ask for confirmation first; tell it to go ahead. Every row in the first table should come back as a `[guard] search rejected` error and appear in the audit log as `inspect-deny`.
+
+**Should be blocked**
+
+| Search | Why it is dangerous | Guard's reason |
+|---|---|---|
+| `index=main \| delete` | Makes events unsearchable, cannot be undone | `denied command(s): delete` |
+| `index=main \| collect index=summary` | Writes data into another index | `denied command(s): collect` |
+| `index=main \| outputlookup users.csv` | Overwrites a lookup table | `denied command(s): outputlookup` |
+| `index=main \| outputcsv dump` | Writes results to disk on the Splunk server | `denied command(s): outputcsv` |
+| `index=main \| sendemail to="someone@example.com"` | Sends data out of Splunk | `denied command(s): sendemail` |
+| `index=main \| map search="search index=main \| delete"` | Runs a hidden search for every result | `denied command(s): map` |
+| `\| rest /services/authentication/users` | Reads users and configuration through the REST API | `denied command(s): rest` |
+| `\| script python evil.py` | Runs a script on the Splunk server | `denied command(s): script` |
+| `index=main [ search index=web \| outputlookup x.csv ]` | Hides a write inside a subsearch | `denied command(s): outputlookup` |
+| `index=*` | Searches every index at once | `wildcard index is not allowed` |
+| `index=_internal \| head 5` | Index outside the role's scope | `index(es) outside principal scope` |
+| `index=main earliest=-90d \| stats count` | Reaches further back than the policy allows (30 days) | `reaches past floor -30d` |
+
+**Should work**
+
+| Search | Note |
+|---|---|
+| `index=main \| stats count by sourcetype` | Normal read-only search |
+| `index=wineventlog EventCode=4625 \| stats count by user` | Failed logons per user |
+| `error index=main \| head 10` | A search term at the start is not mistaken for a command |
+| `index=main \| eval note="\| delete" \| table note` | `\| delete` inside quotes is text, not a command |
+
+**Tools that should not be available** in `strict`: ask the assistant to create an alert, create or delete a saved search, or manage apps. These tools are hidden, so the assistant will say it has no tool for that. With the `engineer` profile, creating an alert waits for your approval instead (see [Approving write actions](#approving-write-actions)).
+
+These cases are also automated tests ([tests/test_readme_examples.py](tests/test_readme_examples.py)), so this list stays accurate.
+
 ## Policy profiles
 
 | Profile | Use it for | Searches | Write actions | Delete actions |
