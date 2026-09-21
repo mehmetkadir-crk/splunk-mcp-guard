@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How splunk-mcp-guard works</title>
+<style>
+  :root { --bg:#ffffff; --fg:#1f2328; --muted:#6b7280; --deny:#c62828; --box:#f5f7fa; --guard:#eef3fb; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg:#0f1115; --fg:#e6e8eb; --muted:#9aa3ad; --deny:#ff6b6b; --box:#1a1e26; --guard:#161c28; }
+  }
+  :root[data-theme="dark"] { --bg:#0f1115; --fg:#e6e8eb; --muted:#9aa3ad; --deny:#ff6b6b; --box:#1a1e26; --guard:#161c28; }
+  body { margin:0; padding:24px 16px; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  figure { margin:0 auto; max-width:1100px; }
+  svg { display:block; width:100%; height:auto; color:var(--fg); }
+  figcaption { color:var(--muted); font-size:14px; margin-top:12px; }
+  h1 { font-size:20px; margin:0 0 16px; }
+</style>
+</head>
+<body>
+<h1>splunk-mcp-guard — the path of one tool call</h1>
+<figure>
+<svg viewBox="0 0 1100 625" role="img" aria-label="A request from Claude Desktop enters the guard; only if it passes identity and role, tool class, SPL inspection and human approval does it reach Splunk through the MCP server. Every stage has a deny exit. The result passes through the output guard; every decision is written to the audit log. At startup, preflight asks Splunk what the backend account may do.">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+    </marker>
+    <marker id="arr-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--deny)"/>
+    </marker>
+  </defs>
+
+  <!-- guard container -->
+  <rect x="200" y="40" width="660" height="515" rx="10" fill="var(--guard)" stroke="currentColor" stroke-width="1.5"/>
+  <text x="216" y="66" font-size="14" font-weight="600">splunk-mcp-guard (proxy process)</text>
+
+  <!-- client -->
+  <rect x="20" y="210" width="150" height="70" rx="8" fill="var(--box)" stroke="currentColor" stroke-width="1.5"/>
+  <text x="95" y="240" text-anchor="middle" font-size="13" font-weight="600">Claude Desktop</text>
+  <text x="95" y="258" text-anchor="middle" font-size="11" fill="var(--muted)">LLM client</text>
+
+  <!-- backend mcp -->
+  <rect x="900" y="210" width="170" height="70" rx="8" fill="var(--box)" stroke="currentColor" stroke-width="1.5"/>
+  <text x="985" y="240" text-anchor="middle" font-size="13" font-weight="600">Splunk MCP server</text>
+  <text x="985" y="258" text-anchor="middle" font-size="11" fill="var(--muted)">deslicer / official app</text>
+
+  <!-- splunk -->
+  <rect x="900" y="330" width="170" height="70" rx="8" fill="var(--box)" stroke="currentColor" stroke-width="1.5"/>
+  <text x="985" y="360" text-anchor="middle" font-size="13" font-weight="600">Splunk</text>
+  <text x="985" y="378" text-anchor="middle" font-size="11" fill="var(--muted)">REST 8089 · mcp_svc account</text>
+  <line x1="985" y1="280" x2="985" y2="330" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- pipeline stages (request row y=210..280) -->
+  <g font-size="12" text-anchor="middle">
+    <rect x="220" y="210" width="130" height="70" rx="8" fill="var(--box)" stroke="currentColor" stroke-width="1.5"/>
+    <text x="285" y="236" font-weight="600">1. Identity → Role</text>
+    <text x="285" y="254" fill="var(--muted)">GUARD_PRINCIPAL</text>
+    <text x="285" y="269" fill="var(--muted)">kadir → analyst</text>
+
+    <rect x="375" y="210" width="130" height="70" rx="8" fill="var(--box)" stroke="currentColor" stroke-width="1.5"/>
+    <text x="440" y="236" font-weight="600">2. Tool class</text>
+    <text x="440" y="254" fill="var(--muted)">allow · inspect</text>
+    <text x="440" y="269" fill="var(--muted)">approve · deny</text>
+
+    <rect x="530" y="210" width="130" height="70" rx="8" fill="var(--box)" stroke="currentColor" stroke-width="1.5"/>
+    <text x="595" y="236" font-weight="600">3. SPL inspection</text>
+    <text x="595" y="254" fill="var(--muted)">tokenizer + parser</text>
+    <text x="595" y="269" fill="var(--muted)">cmd · index · time</text>
+
+    <rect x="685" y="210" width="130" height="70" rx="8" fill="var(--box)" stroke="currentColor" stroke-width="1.5"/>
+    <text x="750" y="236" font-weight="600">4. Approval</text>
+    <text x="750" y="254" fill="var(--muted)">approve class only</text>
+    <text x="750" y="269" fill="var(--muted)">explicit yes only</text>
+  </g>
+
+  <!-- request arrows -->
+  <line x1="170" y1="235" x2="220" y2="235" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="195" y="222" text-anchor="middle" font-size="10" fill="var(--muted)">tool call</text>
+  <line x1="350" y1="245" x2="375" y2="245" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="505" y1="245" x2="530" y2="245" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="660" y1="245" x2="685" y2="245" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="815" y1="235" x2="900" y2="235" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="857" y="226" text-anchor="middle" font-size="10" fill="var(--muted)">forward</text>
+
+  <!-- deny exits -->
+  <g stroke="var(--deny)" stroke-width="1.5" fill="none">
+    <path d="M440 210 V150" marker-end="url(#arr-deny)"/>
+    <path d="M595 210 V150" marker-end="url(#arr-deny)"/>
+    <path d="M750 210 V150" marker-end="url(#arr-deny)"/>
+  </g>
+  <g font-size="10" fill="var(--deny)" text-anchor="middle">
+    <text x="440" y="188">deny / unknown tool</text>
+    <text x="595" y="188">denied cmd · out of scope</text>
+    <text x="750" y="188">no · timeout · unsupported</text>
+  </g>
+  <rect x="375" y="110" width="440" height="40" rx="8" fill="none" stroke="var(--deny)" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="595" y="134" text-anchor="middle" font-size="12" fill="var(--deny)" font-weight="600">DENY → error to client, nothing reaches Splunk</text>
+
+  <!-- preflight -->
+  <rect x="220" y="90" width="130" height="60" rx="8" fill="var(--box)" stroke="currentColor" stroke-width="1.5"/>
+  <text x="285" y="112" text-anchor="middle" font-size="12" font-weight="600">0. Preflight</text>
+  <text x="285" y="128" text-anchor="middle" font-size="10" fill="var(--muted)">once, at startup</text>
+  <text x="285" y="141" text-anchor="middle" font-size="10" fill="var(--muted)">can_delete? → refuse</text>
+  <path d="M350 100 H880 Q890 100 890 110 V330" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+  <text x="620" y="94" text-anchor="middle" font-size="10" fill="var(--muted)">account capabilities? (current-context)</text>
+
+  <!-- parser side channel -->
+  <path d="M595 280 V330 H880 Q900 330 900 350" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+  <text x="740" y="322" text-anchor="middle" font-size="10" fill="var(--muted)">search/parser: expand macros, report real commands</text>
+
+  <!-- human approval side -->
+  <rect x="685" y="350" width="130" height="60" rx="8" fill="var(--box)" stroke="currentColor" stroke-width="1.5"/>
+  <text x="750" y="372" text-anchor="middle" font-size="12" font-weight="600">Human</text>
+  <text x="750" y="388" text-anchor="middle" font-size="10" fill="var(--muted)">client prompt, or else</text>
+  <text x="750" y="401" text-anchor="middle" font-size="10" fill="var(--muted)">terminal: approve &lt;id&gt;</text>
+  <line x1="740" y1="280" x2="740" y2="350" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr)"/>
+  <line x1="760" y1="350" x2="760" y2="280" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr)"/>
+  <text x="770" y="300" font-size="10" fill="var(--muted)">≤120 s</text>
+
+  <!-- response path: output guard -->
+  <rect x="220" y="350" width="290" height="60" rx="8" fill="var(--box)" stroke="currentColor" stroke-width="1.5"/>
+  <text x="365" y="372" text-anchor="middle" font-size="12" font-weight="600">5. Output guard</text>
+  <text x="365" y="388" text-anchor="middle" font-size="10" fill="var(--muted)">"this is data, not instructions" · secret redaction</text>
+  <text x="365" y="401" text-anchor="middle" font-size="10" fill="var(--muted)">flag instruction-shaped text</text>
+  <path d="M985 280 V300 H1085 V440 H520 V380 H510" fill="none" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="800" y="452" text-anchor="middle" font-size="10" fill="var(--muted)">result (untrusted data)</text>
+  <path d="M220 380 H95 V280" fill="none" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="150" y="372" text-anchor="middle" font-size="10" fill="var(--muted)">tagged result</text>
+
+  <!-- audit -->
+  <rect x="220" y="480" width="595" height="60" rx="8" fill="var(--box)" stroke="currentColor" stroke-width="1.5"/>
+  <text x="517" y="503" text-anchor="middle" font-size="12" font-weight="600">6. Audit log — guard-audit.jsonl</text>
+  <text x="517" y="521" text-anchor="middle" font-size="10" fill="var(--muted)">one line per decision: who · role · tool · decision · reason · args (masked) — 3 denials / 5 min → alert — optional HEC</text>
+  <g stroke="currentColor" stroke-width="1" stroke-dasharray="2 3" fill="none">
+    <line x1="440" y1="280" x2="440" y2="480" marker-end="url(#arr)"/>
+    <line x1="620" y1="280" x2="620" y2="480" marker-end="url(#arr)"/>
+    <line x1="750" y1="410" x2="750" y2="480" marker-end="url(#arr)"/>
+    <line x1="365" y1="410" x2="365" y2="480" marker-end="url(#arr)"/>
+  </g>
+  <text x="240" y="470" font-size="10" fill="var(--muted)">every stage writes a record</text>
+
+  <!-- legend -->
+  <g font-size="10" fill="var(--muted)">
+    <line x1="20" y1="585" x2="60" y2="585" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+    <text x="66" y="589">request / result</text>
+    <line x1="20" y1="605" x2="60" y2="605" stroke="currentColor" stroke-width="1.2" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+    <text x="66" y="609">side query to Splunk (parser, preflight)</text>
+    <line x1="420" y1="585" x2="460" y2="585" stroke="var(--deny)" stroke-width="1.5" marker-end="url(#arr-deny)"/>
+    <text x="466" y="589" fill="var(--deny)">deny exit</text>
+    <line x1="420" y1="605" x2="460" y2="605" stroke="currentColor" stroke-width="1" stroke-dasharray="2 3" marker-end="url(#arr)"/>
+    <text x="466" y="609">to audit log</text>
+  </g>
+</svg>
+<figcaption>A tool call passes four gates inside the guard (identity/role, tool class, SPL inspection, human approval); failing any of them returns an error to the client and nothing reaches Splunk. A call that passes is forwarded to the real MCP server; the result comes back as untrusted data and is tagged and filtered. Every stage writes to the audit log. At startup, preflight refuses to run if the backend account is over-privileged.</figcaption>
+</figure>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 625" role="img" aria-label="İstek Claude Desktop'tan guard'a girer; kimlik ve rol, tool sınıfı, SPL denetimi ve insan onayı aşamalarından geçerse MCP sunucusu üzerinden Splunk'a ulaşır. Her aşamadan ret çıkışı vardır. Dönen sonuç çıktı filtresinden geçer; her karar denetim kaydına yazılır. Açılışta preflight arka uç hesabının yetkilerini Splunk'a sorar." xmlns:c2pa="http://c2pa.org/manifest"><metadata><c2pa:manifest>AAAWgmp1bWIAAAAeanVtZGMycGEAEQAQgAAAqgA4m3EDYzJwYQAAABZcanVtYgAAAEdqdW1kYzJtYQARABCAAACqADibcQN1cm46YzJwYTozYTA3NzZlMi0yMGQ4LTQ5ZTgtOWFlYS1kNzJmMDRkYWYxN2MAAAADl2p1bWIAAAApanVtZGMyYXMAEQAQgAAAqgA4m3EDYzJwYS5hc3NlcnRpb25zAAAAALxqdW1iAAAARGp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuaW5ncmVkaWVudC52MwAAAAAYYzJzaCEKupdfWUkR0oXR83sZouwAAABwY2JvcqNpZGM6Zm9ybWF0bWltYWdlL3N2Zyt4bWxqaW5zdGFuY2VJRHgseG1wOmlpZDplNzk3ZGY0Zi1lYTEzLTQyZDctOTdmZS1kODMwMmYxYWY0NmJscmVsYXRpb25zaGlwaHBhcmVudE9mAAAB4mp1bWIAAABBanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5hY3Rpb25zLnYyAAAAABhjMnNoP4fQeWNURFhlqwX8iKb+tAAAAZljYm9yomdhY3Rpb25zgqJmYWN0aW9ua2MycGEub3BlbmVkanBhcmFtZXRlcnOha2luZ3JlZGllbnRzgaJjdXJseC1zZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmluZ3JlZGllbnQudjNkaGFzaFggCbE619efm/gss2oT9cOPa8RaBeFBDtTr0b04eJ3wEfSkZmFjdGlvbngdY29tLmFudGhyb3BpYy5jbGF1ZGUucHJvdmlkZWRqcGFyYW1ldGVyc6F4H2NvbS5hbnRocm9waWMub3JpZ2luLWNvbmZpZGVuY2VndW5rbm93bmtkZXNjcmlwdGlvbnhmQ2xhdWRlIHByb3ZpZGVkIHRoaXMgZmlsZSBhdCB0aGUgcmVxdWVzdCBvZiBhIHVzZXIgYW5kIG1heSBoYXZlIGNyZWF0ZWQgb3IgbW9kaWZpZWQgdGhlIGZpbGUgY29udGVudHMubXNvZnR3YXJlQWdlbnShZG5hbWVmQ2xhdWRlcmFsbEFjdGlvbnNJbmNsdWRlZPUAAADIanVtYgAAAEBqdW1kY2JvcgARABCAAACqADibcRNjMnBhLmhhc2guZGF0YQAAAAAYYzJzaFugW6HTEUVF6eJZ+uKPLTMAAACAY2JvcqVjYWxnZnNoYTI1NmNwYWRMAAAAAAAAAAAAAAAAZGhhc2hYIFDelyxcmD4fRCUMJz4HSdivss97x8VhbgyojCV6NnFIZG5hbWVuanVtYmYgbWFuaWZlc3RqZXhjbHVzaW9uc4GiZXN0YXJ0GQIAZmxlbmd0aBkeBAAAAj5qdW1iAAAAJ2p1bWRjMmNsABEAEIAAAKoAOJtxA2MycGEuY2xhaW0udjIAAAACD2Nib3KlY2FsZ2ZzaGEyNTZpc2lnbmF0dXJleE1zZWxmI2p1bWJmPS9jMnBhL3VybjpjMnBhOjNhMDc3NmUyLTIwZDgtNDllOC05YWVhLWQ3MmYwNGRhZjE3Yy9jMnBhLnNpZ25hdHVyZWppbnN0YW5jZUlEeCx4bXA6aWlkOmZkMTU3MzVhLTQxMmYtNDIwOS04Y2QwLWQ0Yzk1ZmM4MWI2NHJjcmVhdGVkX2Fzc2VydGlvbnODomN1cmx4LXNlbGYjanVtYmY9YzJwYS5hc3NlcnRpb25zL2MycGEuaW5ncmVkaWVudC52M2RoYXNoWCAJsTrX15+b+CyzahP1w49rxFoF4UEO1OvRvTh4nfAR9KJjdXJseCpzZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmFjdGlvbnMudjJkaGFzaFggOeLFXgt2hoUC6k9gLb6Me+JTCSbSLr8WL0IOlartugGiY3VybHgpc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5oYXNoLmRhdGFkaGFzaFgg4HjmmeYRAv3Q349eFSZMv0Vf+OKS403Ug+EA/TgU1jl0Y2xhaW1fZ2VuZXJhdG9yX2luZm+jZG5hbWVvQW50aHJvcGljIEZpbGVzZ3ZlcnNpb25lMS4wLjBrc3BlY1ZlcnNpb25lMi40LjAAABA4anVtYgAAAChqdW1kYzJjcwARABCAAACqADibcQNjMnBhLnNpZ25hdHVyZQAAABAIY2JvctKEWQISogEmGCFZAgowggIGMIIBjaADAgECAhRA5aAK7sI50L64g/oGQgU9Z1UTADAKBggqhkjOPQQDAzBJMRcwFQYDVQQKEw5BbnRocm9waWMsIFBCQzEuMCwGA1UEAxMlQW50aHJvcGljIENvbnRlbnQgQ3JlZGVudGlhbHMgUm9vdCBDQTAeFw0yNjA4MDcxODQzNTZaFw0yODA4MDYxOTQzNTZaMEQxFzAVBgNVBAoTDkFudGhyb3BpYywgUEJDMSkwJwYDVQQDEyBBbnRocm9waWMgQ2xhdWRlIENvbnRlbnQgU2lnbmluZzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJh6CmvLUBgFFNU0vUKlOVtE6djd17L5SuwX0LemFisBM3dkd/3cyjxFA3Qo5S46fX0/ihY0VZ7mfb9KF703t5OjWDBWMA4GA1UdDwEB/wQEAwIHgDAVBgNVHSUEDjAMBgorBgEEAYPoXgIBMAwGA1UdEwEB/wQCMAAwHwYDVR0jBBgwFoAUzlHiBIFOZFsj+OPEz5o+nMHXXMIwCgYIKoZIzj0EAwMDZwAwZAIwMXMdFJ4BetLLVY7ORuE9noqbbAZOZn/aArXyTwFAZfKrPzxF2vPoJNf1+UCdg1XGAjBwX1zd9WGqYkqmL5SFqw1QySjr1zJfpJM9+1rdDwSPLMOPOjKuiXjoU/pUUeG9RwmhY3BhZFkNngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPZYQJMudzPjefEQmmwfw5YtptgGDXkrCPVdezI+dhctHSiSZ3gwgoxcAQiTckk2X8Q0Y1LheG4ZCY8KlrwZlqNAAtc=</c2pa:manifest></metadata>
+  <style>svg{color:#1f2328;font-family:system-ui,Segoe UI,Roboto,sans-serif}</style><rect width="100%" height="100%" fill="#ffffff"/><defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+    </marker>
+    <marker id="arr-deny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#c62828"/>
+    </marker>
+  </defs>
+
+  <!-- guard container -->
+  <rect x="200" y="40" width="660" height="515" rx="10" fill="#eef3fb" stroke="currentColor" stroke-width="1.5"/>
+  <text x="216" y="66" font-size="14" font-weight="600">splunk-mcp-guard (vekil süreç)</text>
+
+  <!-- client -->
+  <rect x="20" y="210" width="150" height="70" rx="8" fill="#f5f7fa" stroke="currentColor" stroke-width="1.5"/>
+  <text x="95" y="240" text-anchor="middle" font-size="13" font-weight="600">Claude Desktop</text>
+  <text x="95" y="258" text-anchor="middle" font-size="11" fill="#6b7280">LLM istemcisi</text>
+
+  <!-- backend mcp -->
+  <rect x="900" y="210" width="170" height="70" rx="8" fill="#f5f7fa" stroke="currentColor" stroke-width="1.5"/>
+  <text x="985" y="240" text-anchor="middle" font-size="13" font-weight="600">Splunk MCP sunucusu</text>
+  <text x="985" y="258" text-anchor="middle" font-size="11" fill="#6b7280">deslicer / resmi app</text>
+
+  <!-- splunk -->
+  <rect x="900" y="330" width="170" height="70" rx="8" fill="#f5f7fa" stroke="currentColor" stroke-width="1.5"/>
+  <text x="985" y="360" text-anchor="middle" font-size="13" font-weight="600">Splunk</text>
+  <text x="985" y="378" text-anchor="middle" font-size="11" fill="#6b7280">REST 8089 · mcp_svc hesabı</text>
+  <line x1="985" y1="280" x2="985" y2="330" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- pipeline stages (request row y=210..280) -->
+  <g font-size="12" text-anchor="middle">
+    <rect x="220" y="210" width="130" height="70" rx="8" fill="#f5f7fa" stroke="currentColor" stroke-width="1.5"/>
+    <text x="285" y="236" font-weight="600">1. Kimlik → Rol</text>
+    <text x="285" y="254" fill="#6b7280">GUARD_PRINCIPAL</text>
+    <text x="285" y="269" fill="#6b7280">kadir → analyst</text>
+
+    <rect x="375" y="210" width="130" height="70" rx="8" fill="#f5f7fa" stroke="currentColor" stroke-width="1.5"/>
+    <text x="440" y="236" font-weight="600">2. Tool sınıfı</text>
+    <text x="440" y="254" fill="#6b7280">allow · inspect</text>
+    <text x="440" y="269" fill="#6b7280">approve · deny</text>
+
+    <rect x="530" y="210" width="130" height="70" rx="8" fill="#f5f7fa" stroke="currentColor" stroke-width="1.5"/>
+    <text x="595" y="236" font-weight="600">3. SPL denetimi</text>
+    <text x="595" y="254" fill="#6b7280">tokenizer + parser</text>
+    <text x="595" y="269" fill="#6b7280">komut · indeks · süre</text>
+
+    <rect x="685" y="210" width="130" height="70" rx="8" fill="#f5f7fa" stroke="currentColor" stroke-width="1.5"/>
+    <text x="750" y="236" font-weight="600">4. İnsan onayı</text>
+    <text x="750" y="254" fill="#6b7280">yalnız approve sınıfı</text>
+    <text x="750" y="269" fill="#6b7280">evet değilse hayır</text>
+  </g>
+
+  <!-- request arrows -->
+  <line x1="170" y1="235" x2="220" y2="235" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="195" y="222" text-anchor="middle" font-size="10" fill="#6b7280">tool çağrısı</text>
+  <line x1="350" y1="245" x2="375" y2="245" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="505" y1="245" x2="530" y2="245" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="660" y1="245" x2="685" y2="245" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="815" y1="235" x2="900" y2="235" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="857" y="226" text-anchor="middle" font-size="10" fill="#6b7280">geçti → ilet</text>
+
+  <!-- deny exits -->
+  <g stroke="#c62828" stroke-width="1.5" fill="none">
+    <path d="M440 210 V150" marker-end="url(#arr-deny)"/>
+    <path d="M595 210 V150" marker-end="url(#arr-deny)"/>
+    <path d="M750 210 V150" marker-end="url(#arr-deny)"/>
+  </g>
+  <g font-size="10" fill="#c62828" text-anchor="middle">
+    <text x="440" y="188">deny / bilinmeyen tool</text>
+    <text x="595" y="188">yasak komut · kapsam dışı</text>
+    <text x="750" y="188">ret · süre doldu · destek yok</text>
+  </g>
+  <rect x="375" y="110" width="440" height="40" rx="8" fill="none" stroke="#c62828" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="595" y="134" text-anchor="middle" font-size="12" fill="#c62828" font-weight="600">RET → istemciye hata, Splunk'a hiçbir şey gitmez</text>
+
+  <!-- preflight -->
+  <rect x="220" y="90" width="130" height="60" rx="8" fill="#f5f7fa" stroke="currentColor" stroke-width="1.5"/>
+  <text x="285" y="112" text-anchor="middle" font-size="12" font-weight="600">0. Preflight</text>
+  <text x="285" y="128" text-anchor="middle" font-size="10" fill="#6b7280">açılışta bir kez</text>
+  <text x="285" y="141" text-anchor="middle" font-size="10" fill="#6b7280">can_delete? → başlama</text>
+  <path d="M350 100 H880 Q890 100 890 110 V330" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+  <text x="620" y="94" text-anchor="middle" font-size="10" fill="#6b7280">hesabın yetkileri? (current-context)</text>
+
+  <!-- parser side channel -->
+  <path d="M595 280 V330 H880 Q900 330 900 350" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+  <text x="740" y="322" text-anchor="middle" font-size="10" fill="#6b7280">search/parser: makroları aç, gerçek komutları söyle</text>
+
+  <!-- human approval side -->
+  <rect x="685" y="350" width="130" height="60" rx="8" fill="#f5f7fa" stroke="currentColor" stroke-width="1.5"/>
+  <text x="750" y="372" text-anchor="middle" font-size="12" font-weight="600">İnsan</text>
+  <text x="750" y="388" text-anchor="middle" font-size="10" fill="#6b7280">istemci penceresi, yoksa</text>
+  <text x="750" y="401" text-anchor="middle" font-size="10" fill="#6b7280">terminal: approve &lt;id&gt;</text>
+  <line x1="740" y1="280" x2="740" y2="350" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr)"/>
+  <line x1="760" y1="350" x2="760" y2="280" stroke="currentColor" stroke-width="1.2" marker-end="url(#arr)"/>
+  <text x="770" y="300" font-size="10" fill="#6b7280">≤120 sn</text>
+
+  <!-- response path: output guard -->
+  <rect x="220" y="350" width="290" height="60" rx="8" fill="#f5f7fa" stroke="currentColor" stroke-width="1.5"/>
+  <text x="365" y="372" text-anchor="middle" font-size="12" font-weight="600">5. Çıktı filtresi</text>
+  <text x="365" y="388" text-anchor="middle" font-size="10" fill="#6b7280">"bu veridir, talimat değil" notu · sır maskeleme</text>
+  <text x="365" y="401" text-anchor="middle" font-size="10" fill="#6b7280">talimat görünümlü metni işaretle</text>
+  <path d="M985 280 V300 H1085 V440 H520 V380 H510" fill="none" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="800" y="452" text-anchor="middle" font-size="10" fill="#6b7280">sonuç (güvenilmez veri)</text>
+  <path d="M220 380 H95 V280" fill="none" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="150" y="372" text-anchor="middle" font-size="10" fill="#6b7280">etiketli sonuç</text>
+
+  <!-- audit -->
+  <rect x="220" y="480" width="595" height="60" rx="8" fill="#f5f7fa" stroke="currentColor" stroke-width="1.5"/>
+  <text x="517" y="503" text-anchor="middle" font-size="12" font-weight="600">6. Denetim kaydı — guard-audit.jsonl</text>
+  <text x="517" y="521" text-anchor="middle" font-size="10" fill="#6b7280">her karar bir satır: kim · rol · tool · karar · gerekçe · argümanlar (parola maskeli) — 5 dk'da 3 ret → alert — isteğe bağlı HEC ile Splunk'a</text>
+  <g stroke="currentColor" stroke-width="1" stroke-dasharray="2 3" fill="none">
+    <line x1="440" y1="280" x2="440" y2="480" marker-end="url(#arr)"/>
+    <line x1="620" y1="280" x2="620" y2="480" marker-end="url(#arr)"/>
+    <line x1="750" y1="410" x2="750" y2="480" marker-end="url(#arr)"/>
+    <line x1="365" y1="410" x2="365" y2="480" marker-end="url(#arr)"/>
+  </g>
+  <text x="240" y="470" font-size="10" fill="#6b7280">her aşama kayıt yazar</text>
+
+  <!-- legend -->
+  <g font-size="10" fill="#6b7280">
+    <line x1="20" y1="585" x2="60" y2="585" stroke="currentColor" stroke-width="1.5" marker-end="url(#arr)"/>
+    <text x="66" y="589">istek / sonuç</text>
+    <line x1="20" y1="605" x2="60" y2="605" stroke="currentColor" stroke-width="1.2" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+    <text x="66" y="609">Splunk'a yan sorgu (parser, preflight)</text>
+    <line x1="420" y1="585" x2="460" y2="585" stroke="#c62828" stroke-width="1.5" marker-end="url(#arr-deny)"/>
+    <text x="466" y="589" fill="#c62828">ret çıkışı</text>
+    <line x1="420" y1="605" x2="460" y2="605" stroke="currentColor" stroke-width="1" stroke-dasharray="2 3" marker-end="url(#arr)"/>
+    <text x="466" y="609">denetim kaydına</text>
+  </g>
+</svg>
