@@ -69,6 +69,34 @@ Fully quit and reopen Claude Desktop, then ask it to list your Splunk indexes. T
 
 To change which tools or indexes are allowed later, edit the policy file that `init` printed and restart the client.
 
+## Example: tested on a live Splunk
+
+Real screenshots from a fresh install (cloned from this repository, set up with `splunk-mcp-guard init`, `strict` profile). The client is Claude Desktop, the backend is deslicer/mcp-for-splunk, and Splunk Enterprise uses the least-privilege `mcp_svc` account.
+
+**1. Listing indexes is allowed.** The call goes through, and the result comes back tagged as untrusted data.
+
+![Claude Desktop listing Splunk indexes through the guard](docs/images/example-list-indexes.png)
+
+> The list also shows internal index names such as `_internal`, because the model asked for them (`include_internal: true`). The names are visible, but searching those indexes is blocked by the role's index scope.
+
+**2. `index=main | delete` is blocked.** The model asked for confirmation first and was told to go ahead. The guard still refused, and Splunk's own parser refused as well. Nothing in `main` was touched.
+
+![Claude Desktop reporting that the delete was blocked](docs/images/example-delete-blocked.png)
+
+**3. Every decision is in the audit log.** From top to bottom: startup check passed with `mcp_svc` (role `mcp_reader`, no forbidden capabilities), `list_indexes` allowed, `delete` denied with both reasons.
+
+![guard-audit.jsonl after the test](docs/images/example-audit-log.png)
+
+```json
+{"kind": "decision", "principal": "kadir", "role": "analyst", "tool": "run_splunk_search",
+ "decision": "inspect-deny",
+ "reason": "splunk parser rejected the query: Error in 'delete' command: You have insufficient privileges to delete events.; denied command(s): delete",
+ "args": {"earliest_time": "-24h", "latest_time": "now", "query": "search index=main | delete"},
+ "result_sha256": null}
+```
+
+`result_sha256: null` means Splunk returned nothing: the search never ran. More tests are listed in [docs/verification.md](docs/verification.md).
+
 ## Policy profiles
 
 | Profile | Use it for | Searches | Write actions | Delete actions |
