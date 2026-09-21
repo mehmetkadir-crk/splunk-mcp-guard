@@ -242,7 +242,7 @@ roles:
 
 principals:
   # ahmet: analyst
-  # kadir: engineer
+  # bob: engineer
 
 audit:
   path: ./guard-audit.jsonl

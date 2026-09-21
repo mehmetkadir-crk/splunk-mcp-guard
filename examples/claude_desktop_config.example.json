@@ -1,22 +1,22 @@
 {
   "mcpServers": {
     "splunk-guarded": {
-      "command": "D:\\splunk mcp proje\\.venv\\Scripts\\splunk-mcp-guard.exe",
+      "command": "C:\\path\\to\\splunk-mcp-guard\\.venv\\Scripts\\splunk-mcp-guard.exe",
       "args": [
-        "--policy", "D:\\splunk mcp proje\\policy\\strict.yaml",
-        "--backend", "D:\\splunk mcp proje\\examples\\backend.deslicer.json"
+        "--policy", "C:\\path\\to\\splunk-mcp-guard\\policy\\strict.yaml",
+        "--backend", "C:\\path\\to\\splunk-mcp-guard\\examples\\backend.deslicer.json"
       ],
       "env": {
         "PYTHONIOENCODING": "utf-8",
         "PYTHONUTF8": "1",
-        "GUARD_PRINCIPAL": "kadir",
-        "GUARD_AUDIT_PATH": "D:\\splunk mcp proje\\guard-audit.jsonl",
+        "GUARD_PRINCIPAL": "alice",
+        "GUARD_AUDIT_PATH": "C:\\path\\to\\splunk-mcp-guard\\guard-audit.jsonl",
+        "GUARD_APPROVAL_DIR": "C:\\path\\to\\guard-approvals",
         "GUARD_SPLUNK_HOST": "localhost",
         "GUARD_SPLUNK_PORT": "8089",
-        "GUARD_SPLUNK_VERIFY_SSL": "false",
+        "GUARD_SPLUNK_VERIFY_SSL": "true",
         "GUARD_SPLUNK_USERNAME": "mcp_svc",
-        "GUARD_SPLUNK_PASSWORD": "<service account password>",
-        "GUARD_APPROVAL_DIR": "D:\\splunk mcp proje\\guard-approvals"
+        "GUARD_SPLUNK_PASSWORD": "<service account password>"
       }
     }
   }

@@ -142,7 +142,7 @@ async def test_repeated_denials_raise_alert(tmp_path):
 
 
 async def test_approve_requires_human_yes(tmp_path):
-    g, _ = make_guard(tmp_path, principal="kadir", principals={"kadir": "engineer"})
+    g, _ = make_guard(tmp_path, principal="bob", principals={"bob": "engineer"})
     # declined
     with pytest.raises(ToolError):
         await g.on_call_tool(FakeCtx("create_alert", {"name": "x"}, elicit_answer=None), forward_ok)
@@ -153,7 +153,7 @@ async def test_approve_requires_human_yes(tmp_path):
 
 
 async def test_approve_fails_closed_without_elicitation(tmp_path):
-    g, p = make_guard(tmp_path, principal="kadir", principals={"kadir": "engineer"})
+    g, p = make_guard(tmp_path, principal="bob", principals={"bob": "engineer"})
     p.approval.mode = "elicit"  # no out-of-band fallback configured
     ctx = FakeCtx("create_alert", {"name": "x"})
     ctx.fastmcp_context = None  # client with no elicitation support
@@ -221,7 +221,7 @@ class NoElicitCtx:
 
 
 def make_engineer(tmp_path, mode="auto", timeout=3):
-    g, p = make_guard(tmp_path, principal="kadir", principals={"kadir": "engineer"})
+    g, p = make_guard(tmp_path, principal="bob", principals={"bob": "engineer"})
     p.approval.mode = mode
     p.approval.dir = str(tmp_path / "approvals")
     p.approval.timeout_seconds = timeout

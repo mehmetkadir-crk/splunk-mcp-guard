@@ -24,7 +24,7 @@ roles:
       approve: []
       deny:    [delete_saved_search, create_config, manage_apps, …]
     spl_args: { run_splunk_search: [query] }
-principals: { ahmet: analyst, kadir: engineer }
+principals: { alice: analyst, bob: engineer }
 audit: { path: ./guard-audit.jsonl, denied_threshold: 3, window_seconds: 300 }
 output: { tag_untrusted: true, detect_injection: true, redact_secrets: true }
 ```
@@ -56,7 +56,7 @@ Also enforced: index scope per role, `index=*` ban, `earliest` floor (relative t
 
 ```bash
 splunk-mcp-guard pending --policy policy/engineer.yaml     # what is waiting
-splunk-mcp-guard approve 1758400000-a1b2c3 --by kadir
+splunk-mcp-guard approve 1758400000-a1b2c3 --by alice
 splunk-mcp-guard reject  1758400000-a1b2c3
 ```
 
@@ -88,13 +88,33 @@ Three denials from one principal inside the window produce a `kind: alert` line.
 | `GUARD_APPROVAL_DIR` | Absolute path of the out-of-band approval directory |
 | `GUARD_ALLOW_OVERPRIVILEGED` | `1` starts the guard even if preflight finds forbidden capabilities. Emergencies only; it is logged. |
 | `GUARD_HEC_TOKEN` | HEC token when `audit.hec_url` is set |
+| `GUARD_HOME` | Where `init` keeps its files (default `~/.splunk-mcp-guard`); `pending`/`approve` use its `approvals` folder by default |
 
 ## CLI
 
 ```bash
+splunk-mcp-guard init [--print] [--client-config <path>] [--skip-check]   # guided setup
 splunk-mcp-guard --policy <file> --backend <file> [--transport stdio|http] [--host 127.0.0.1] [--port 8010]
 splunk-mcp-guard --policy <file> --backend <file> --print-policy     # show the effective policy and exit
 splunk-mcp-guard pending [--policy <file> | --dir <path>]
 splunk-mcp-guard approve <id> [--by <name>] [--policy <file> | --dir <path>]
 splunk-mcp-guard reject  <id> [--policy <file> | --dir <path>]
 ```
+
+## Manual setup
+
+`splunk-mcp-guard init` does all of this for you. By hand:
+
+1. Copy a profile from `policy/` somewhere of your own and edit `indexes:` and `principals:`.
+2. Describe how to start (or reach) your MCP server, like [`examples/backend.deslicer.json`](../examples/backend.deslicer.json) or [`examples/backend.remote-http.json`](../examples/backend.remote-http.json). On Windows a `.bat` file must be started through `cmd.exe /c`.
+3. Add the guard to your MCP client config, like [`examples/claude_desktop_config.example.json`](../examples/claude_desktop_config.example.json). Use absolute paths everywhere; MCP clients start the guard from an unpredictable working directory.
+4. Remove any other entry in the client config that reaches your Splunk MCP server directly, or the model can bypass the guard.
+
+Claude Desktop keeps its config at:
+
+| OS | Path |
+|---|---|
+| Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
+| Windows (Microsoft Store) | `%LOCALAPPDATA%\Packages\Claude_<id>\LocalCache\Roaming\Claude\claude_desktop_config.json` |
+| macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Linux | `~/.config/Claude/claude_desktop_config.json` |

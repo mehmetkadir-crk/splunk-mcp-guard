@@ -1,6 +1,7 @@
 """CLI entry point.
 
     splunk-mcp-guard --policy policy/strict.yaml --backend examples/backend.deslicer.json
+    splunk-mcp-guard init                           # guided setup (policy, account check, client config)
     splunk-mcp-guard pending  [--policy ...]        # out-of-band approvals waiting
     splunk-mcp-guard approve <id> [--policy ...]
     splunk-mcp-guard reject  <id> [--policy ...]
@@ -74,7 +75,10 @@ def _approval_cli(argv: list[str]) -> int:
         except (PolicyError, OSError) as e:
             print(f"[guard] policy error: {e}", file=sys.stderr)
             return 2
-    d = d or "./guard-approvals"
+    if not d:
+        from .init import guard_home
+        home_dir = guard_home() / "approvals"
+        d = str(home_dir) if home_dir.is_dir() else "./guard-approvals"
 
     if argv[0] == "pending":
         rows = list_pending(d)
@@ -94,6 +98,9 @@ def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv and argv[0] in _APPROVAL_CMDS:
         return _approval_cli(argv)
+    if argv and argv[0] == "init":
+        from .init import main as init_main
+        return init_main(argv[1:])
 
     ap = argparse.ArgumentParser(prog="splunk-mcp-guard",
                                  description="Policy-enforcing proxy in front of any Splunk MCP server.")

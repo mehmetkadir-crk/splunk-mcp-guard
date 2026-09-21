@@ -48,45 +48,26 @@ In Splunk Web:
 
 Use this account for both the MCP server and the guard. With an admin account the guard refuses to start. That refusal is intended.
 
-### 3. Point the guard at your MCP server
+### 3. Run the setup
 
-Copy [`examples/backend.deslicer.json`](examples/backend.deslicer.json) and set the command that starts your MCP server:
-
-```json
-{"mcpServers": {"splunk": {"command": "/path/to/start-your-mcp-server"}}}
+```bash
+splunk-mcp-guard init
 ```
 
-### 4. Choose a policy
+It asks a few questions (profile, Splunk address, service account, how your MCP server is started, which indexes to allow), then:
 
-Start with [`policy/strict.yaml`](policy/strict.yaml). Edit the `indexes:` list under `roles: analyst:` and map your users under `principals:`.
+- checks the Splunk account and stops if it is over-privileged,
+- creates `~/.splunk-mcp-guard/` with your own copy of the policy, the audit log and the approval folder,
+- finds the Claude Desktop config (including the Microsoft Store build), backs it up and adds the guard,
+- offers to remove any Splunk MCP server in the same config that would let the model **bypass** the guard.
 
-### 5. Connect your MCP client
+You do not type any file paths except the one that starts your MCP server. For other MCP clients, run `splunk-mcp-guard init --print` and paste the block it prints. To configure everything by hand instead, see the [configuration reference](docs/configuration.md#manual-setup).
 
-Add the guard to your client config instead of the MCP server. For Claude Desktop, see [`examples/claude_desktop_config.example.json`](examples/claude_desktop_config.example.json):
+### 4. Verify
 
-```json
-{
-  "mcpServers": {
-    "splunk-guarded": {
-      "command": "/path/to/splunk-mcp-guard/.venv/bin/splunk-mcp-guard",
-      "args": ["--policy", "/path/to/policy/strict.yaml",
-               "--backend", "/path/to/backend.json"],
-      "env": {
-        "GUARD_PRINCIPAL": "alice",
-        "GUARD_SPLUNK_HOST": "localhost",
-        "GUARD_SPLUNK_USERNAME": "mcp_svc",
-        "GUARD_SPLUNK_PASSWORD": "<password>",
-        "GUARD_AUDIT_PATH": "/path/to/guard-audit.jsonl",
-        "GUARD_APPROVAL_DIR": "/path/to/guard-approvals"
-      }
-    }
-  }
-}
-```
+Fully quit and reopen Claude Desktop, then ask it to list your Splunk indexes. The result should carry a `_guard` notice, and `~/.splunk-mcp-guard/guard-audit.jsonl` should show a `preflight` line with `ok: true`. Then ask it to run `index=main | delete`. The guard should reject it.
 
-### 6. Verify
-
-Restart the client and ask it to list indexes. The result should carry a `_guard` notice, and `guard-audit.jsonl` should show a `preflight` line with `ok: true`. Then ask it to run `index=main | delete`. The guard should reject it.
+To change which tools or indexes are allowed later, edit the policy file that `init` printed and restart the client.
 
 ## Policy profiles
 
@@ -103,8 +84,8 @@ If you already have an assistant connected to Splunk, start with `audit-only`, r
 When a tool needs approval, the guard first asks through the MCP client. Many clients, Claude Desktop included, cannot show that prompt yet. In that case the guard waits up to 120 seconds for approval from a terminal:
 
 ```bash
-splunk-mcp-guard pending --dir /path/to/guard-approvals
-splunk-mcp-guard approve <id> --by alice --dir /path/to/guard-approvals
+splunk-mcp-guard pending              # list what is waiting, with its id
+splunk-mcp-guard approve <id>         # or: reject <id>
 ```
 
 If nobody approves in time, the answer is no. Keep the approval directory where the assistant's own tools cannot write.

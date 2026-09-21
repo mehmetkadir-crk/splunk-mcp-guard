@@ -10,3 +10,6 @@ guard-audit.jsonl
 .pytest_cache/
 .ruff_cache/
 guard-approvals/
+
+# machine-specific configs
+*.local.json

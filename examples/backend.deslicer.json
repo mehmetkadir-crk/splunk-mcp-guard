@@ -2,7 +2,7 @@
   "mcpServers": {
     "splunk": {
       "command": "C:\\Windows\\System32\\cmd.exe",
-      "args": ["/c", "C:\\Users\\user\\mcp-for-splunk\\run-mcp.bat"]
+      "args": ["/c", "C:\\path\\to\\mcp-for-splunk\\run-mcp.bat"]
     }
   }
 }
