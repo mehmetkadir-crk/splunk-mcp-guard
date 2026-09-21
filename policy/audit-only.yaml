@@ -1,0 +1,179 @@
+# splunk-mcp-guard policy — AUDIT-ONLY profile
+#
+# Blocks nothing. Every tool call is forwarded and written to the audit log,
+# results are tagged as untrusted data and scanned for injection markers.
+# Use this first on an existing deployment to see what the assistant actually
+# does, then move to `engineer` or `strict`.
+
+version: 1
+profile: audit-only
+defaults:
+  role: observer
+  unknown_tool: allow
+identity:
+  source: env
+  env_var: GUARD_PRINCIPAL
+  header: X-Guard-Principal
+  default_principal: anonymous
+preflight:
+  enabled: false
+  refuse_if_backend_has:
+  - can_delete
+  - admin_all_objects
+  - edit_user
+  - edit_roles
+  override_env: GUARD_ALLOW_OVERPRIVILEGED
+spl:
+  use_splunk_parser: true
+  max_events: 1000
+  earliest_floor: -30d
+  forbid_wildcard_index: true
+  require_index: true
+  allowed_commands:
+  - search
+  - tstats
+  - stats
+  - eventstats
+  - streamstats
+  - chart
+  - timechart
+  - top
+  - rare
+  - table
+  - fields
+  - rename
+  - eval
+  - where
+  - head
+  - tail
+  - sort
+  - dedup
+  - rex
+  - regex
+  - spath
+  - lookup
+  - inputlookup
+  - transaction
+  - bin
+  - bucket
+  - fillnull
+  - makemv
+  - mvexpand
+  - nomv
+  - convert
+  - append
+  - appendcols
+  - join
+  - union
+  - fieldsummary
+  - addtotals
+  - metadata
+  - metasearch
+  - datamodel
+  - from
+  - pivot
+  - iplocation
+  - makeresults
+  - format
+  - return
+  - foreach
+  - xyseries
+  - untable
+  - transpose
+  - reverse
+  - uniq
+  - strcat
+  - replace
+  - multikv
+  - kv
+  - extract
+  - loadjob
+  - inputcsv
+  denied_commands:
+  - rest
+  - savedsearch
+  - erex
+  - runshellscript
+roles:
+  observer:
+    indexes:
+    - '*'
+    tools:
+      allow:
+      - create_alert
+      - create_config
+      - create_dashboard
+      - create_kvstore_collection
+      - create_saved_search
+      - delete_alert
+      - delete_saved_search
+      - discover_splunk_docs
+      - enhance_tool_description
+      - execute_saved_search
+      - get_admin_guide
+      - get_cim_reference
+      - get_config_spec
+      - get_configurations
+      - get_dashboard_definition
+      - get_executed_workflows
+      - get_kvstore_data
+      - get_metadata
+      - get_saved_search_details
+      - get_search_job_info
+      - get_search_job_results
+      - get_spl_reference
+      - get_splunk_cheat_sheet
+      - get_splunk_documentation
+      - get_splunk_health
+      - get_studio_topic
+      - get_troubleshooting_guide
+      - list_admin_topics
+      - list_alert_actions
+      - list_apps
+      - list_available_topics
+      - list_cim_data_models
+      - list_config_files
+      - list_dashboard_studio_topics
+      - list_dashboards
+      - list_indexes
+      - list_kvstore_collections
+      - list_lookup_definitions
+      - list_lookup_files
+      - list_saved_searches
+      - list_sources
+      - list_sourcetypes
+      - list_spl_commands
+      - list_triggered_alerts
+      - list_troubleshooting_topics
+      - list_users
+      - list_workflows
+      - manage_apps
+      - me
+      - run_oneshot_search
+      - run_splunk_search
+      - sentry_test
+      - update_alert
+      - update_saved_search
+      - user_agent_info
+      - workflow_builder
+      - workflow_requirements
+      inspect: []
+      approve: []
+      deny: []
+principals: {}
+audit:
+  path: ./guard-audit.jsonl
+  alert_on_denied: true
+  denied_threshold: 3
+  window_seconds: 300
+  hec_url: null
+  redact_arg_keys:
+  - password
+  - token
+  - secret
+  - authorization
+  - splunk_password
+output:
+  tag_untrusted: true
+  detect_injection: true
+  redact_secrets: true

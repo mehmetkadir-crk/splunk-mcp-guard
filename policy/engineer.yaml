@@ -1,0 +1,195 @@
+# splunk-mcp-guard policy — ENGINEER profile
+#
+# For detection engineers. Default role is `engineer`: writes go through human
+# approval, deletes and .conf writes stay denied, SPL runs in denylist-only
+# mode (hard-denied commands still cannot pass). Longer lookback and larger
+# result cap than strict.
+
+version: 1
+profile: engineer
+defaults:
+  role: engineer
+  unknown_tool: deny
+identity:
+  source: env
+  env_var: GUARD_PRINCIPAL
+  header: X-Guard-Principal
+  default_principal: anonymous
+preflight:
+  enabled: true
+  refuse_if_backend_has:
+  - can_delete
+  - admin_all_objects
+  - edit_user
+  - edit_roles
+  override_env: GUARD_ALLOW_OVERPRIVILEGED
+spl:
+  use_splunk_parser: true
+  max_events: 5000
+  earliest_floor: -90d
+  forbid_wildcard_index: true
+  require_index: true
+  allowed_commands: []
+  denied_commands:
+  - rest
+  - savedsearch
+  - erex
+  - runshellscript
+roles:
+  analyst:
+    indexes:
+    - '*'
+    tools:
+      allow:
+      - me
+      - user_agent_info
+      - list_indexes
+      - list_sources
+      - list_sourcetypes
+      - get_metadata
+      - list_saved_searches
+      - get_saved_search_details
+      - get_search_job_info
+      - get_search_job_results
+      - list_alert_actions
+      - list_triggered_alerts
+      - list_dashboards
+      - get_dashboard_definition
+      - list_lookup_files
+      - list_lookup_definitions
+      - list_kvstore_collections
+      - get_kvstore_data
+      - list_apps
+      - get_configurations
+      - list_config_files
+      - get_config_spec
+      - discover_splunk_docs
+      - get_splunk_documentation
+      - get_spl_reference
+      - list_spl_commands
+      - get_splunk_cheat_sheet
+      - get_cim_reference
+      - list_cim_data_models
+      - get_admin_guide
+      - list_admin_topics
+      - get_troubleshooting_guide
+      - list_troubleshooting_topics
+      - list_available_topics
+      - get_studio_topic
+      - list_dashboard_studio_topics
+      - list_workflows
+      - workflow_requirements
+      - get_executed_workflows
+      inspect:
+      - run_splunk_search
+      - run_oneshot_search
+      approve: []
+      deny:
+      - create_saved_search
+      - update_saved_search
+      - delete_saved_search
+      - execute_saved_search
+      - create_alert
+      - update_alert
+      - delete_alert
+      - create_dashboard
+      - create_kvstore_collection
+      - create_config
+      - manage_apps
+      - workflow_builder
+      - enhance_tool_description
+      - list_users
+      - get_splunk_health
+      - sentry_test
+    spl_args:
+      run_splunk_search:
+      - query
+      run_oneshot_search:
+      - query
+  engineer:
+    indexes:
+    - '*'
+    tools:
+      allow:
+      - me
+      - user_agent_info
+      - list_indexes
+      - list_sources
+      - list_sourcetypes
+      - get_metadata
+      - list_saved_searches
+      - get_saved_search_details
+      - get_search_job_info
+      - get_search_job_results
+      - list_alert_actions
+      - list_triggered_alerts
+      - list_dashboards
+      - get_dashboard_definition
+      - list_lookup_files
+      - list_lookup_definitions
+      - list_kvstore_collections
+      - get_kvstore_data
+      - list_apps
+      - list_users
+      - get_configurations
+      - list_config_files
+      - get_config_spec
+      - get_splunk_health
+      - discover_splunk_docs
+      - get_splunk_documentation
+      - get_spl_reference
+      - list_spl_commands
+      - get_splunk_cheat_sheet
+      - get_cim_reference
+      - list_cim_data_models
+      - get_admin_guide
+      - list_admin_topics
+      - get_troubleshooting_guide
+      - list_troubleshooting_topics
+      - list_available_topics
+      - get_studio_topic
+      - list_dashboard_studio_topics
+      - list_workflows
+      - workflow_requirements
+      - get_executed_workflows
+      inspect:
+      - run_splunk_search
+      - run_oneshot_search
+      approve:
+      - create_saved_search
+      - update_saved_search
+      - execute_saved_search
+      - create_alert
+      - update_alert
+      - create_dashboard
+      - create_kvstore_collection
+      - workflow_builder
+      deny:
+      - delete_saved_search
+      - delete_alert
+      - create_config
+      - manage_apps
+      - enhance_tool_description
+      - sentry_test
+    spl_args:
+      run_splunk_search:
+      - query
+      run_oneshot_search:
+      - query
+principals: null
+audit:
+  path: ./guard-audit.jsonl
+  alert_on_denied: true
+  denied_threshold: 3
+  window_seconds: 300
+  hec_url: null
+  redact_arg_keys:
+  - password
+  - token
+  - secret
+  - authorization
+  - splunk_password
+output:
+  tag_untrusted: true
+  detect_injection: true
+  redact_secrets: true

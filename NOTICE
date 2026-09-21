@@ -1,0 +1,9 @@
+splunk-mcp-guard
+Copyright 2026 Mehmet Kadir Cirik
+
+This product includes software developed as an independent, community project.
+It is not affiliated with, endorsed by, or supported by Splunk LLC or Cisco
+Systems, Inc. "Splunk" is a trademark of Splunk LLC and is used here only to
+describe compatibility.
+
+Built on FastMCP (Apache-2.0) by Prefect Technologies, Inc.
