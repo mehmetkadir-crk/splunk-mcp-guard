@@ -15,7 +15,7 @@ The guard stops three things that go wrong in practice:
 
 | Situation | What the guard does |
 |---|---|
-| The service account has more rights than it should | Checks the account at startup and **refuses to run** if it holds `can_delete`, `admin_all_objects`, and similar capabilities |
+| The service account has more rights than it should | Checks the account at startup and **refuses to run** if it holds the `can_delete` role, `delete_by_keyword`, `admin_all_objects` or similar |
 | The model makes a mistake or is manipulated by text in the logs | **Inspects every search** and blocks destructive commands; **write actions need a human** to approve them |
 | A user asks for data outside their scope | Maps each person to a role with its own tools and indexes; the request is **denied, logged**, and repeated attempts raise an **alert** |
 
@@ -117,6 +117,12 @@ After setup with the `strict` profile, ask your assistant to run these searches,
 | `index=*` | Searches every index at once | `wildcard index is not allowed` |
 | `index=_internal \| head 5` | Index outside the role's scope | `index(es) outside principal scope` |
 | `index=main earliest=-90d \| stats count` | Reaches further back than the policy allows (30 days) | `reaches past floor -30d` |
+| `index=main earliest=0` | `0` is epoch zero, i.e. all time | `reaches past floor -30d` |
+| `index=main OR sourcetype=linux_secure` | `OR` next to the index reaches every index | `each search must start with index=...` |
+| `index=main \| append [search sourcetype=x]` | The subsearch has no index | `each search must start with index=...` |
+| `\| tstats count from datamodel=Authentication` | Reads a data model across indexes | `tstats needs 'where index=...'` |
+| ``index=main \| `some_macro` `` | A macro can hide anything | `macros are not allowed for roles with an index scope` |
+| `index=main \| dbxquery query="DROP TABLE t"` | Runs SQL on an external database | `denied command(s): dbxquery` |
 
 **Should work**
 
@@ -124,7 +130,7 @@ After setup with the `strict` profile, ask your assistant to run these searches,
 |---|---|
 | `index=main \| stats count by sourcetype` | Normal read-only search |
 | `index=wineventlog EventCode=4625 \| stats count by user` | Failed logons per user |
-| `error index=main \| head 10` | A search term at the start is not mistaken for a command |
+| `index=main error OR warning \| head 10` | `OR` between search terms is fine once the index comes first |
 | `index=main \| eval note="\| delete" \| table note` | `\| delete` inside quotes is text, not a command |
 
 **Tools that should not be available** in `strict`: ask the assistant to create an alert, create or delete a saved search, or manage apps. These tools are hidden, so the assistant will say it has no tool for that. With the `engineer` profile, creating an alert waits for your approval instead (see [Approving write actions](#approving-write-actions)).
@@ -156,7 +162,10 @@ If nobody approves in time, the answer is no. Keep the approval directory where 
 
 - It cannot see inside a saved search, so running saved searches is blocked in `strict` and needs approval in `engineer`.
 - Secret redaction and prompt-injection detection use patterns. They make cheap attacks harder but are not a guarantee.
-- In HTTP mode the guard does not authenticate users itself. Put an authenticating proxy in front of it.
+- For roles with an index scope, every search must start with `index=...`. Macros, data models and `loadjob` are refused for those roles because their index use cannot be checked.
+- By default a search is refused when Splunk's parser cannot be reached (`spl.require_parser`).
+- In HTTP mode the guard does not authenticate users itself. It trusts the user header only from a proxy that also sends the shared secret in `GUARD_PROXY_SECRET`.
+- MCP resources and prompts from the backend are refused unless the policy allows them (`extras`).
 
 ## Documentation
 

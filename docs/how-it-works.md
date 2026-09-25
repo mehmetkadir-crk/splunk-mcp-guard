@@ -52,7 +52,7 @@ Say the model calls `run_oneshot_search` with the query `index=main | delete`.
 
 ## At startup: preflight
 
-When the guard starts, it asks Splunk what the backend account is and what it may do (`current-context`). If the account holds `can_delete`, `admin_all_objects`, `edit_user` or `edit_roles`, the guard **does not start** and says why. This answers the case of "someone gave it an admin account and nobody noticed". In an emergency, `GUARD_ALLOW_OVERPRIVILEGED=1` overrides this, and the override is logged.
+When the guard starts, it asks Splunk what the backend account is and what it may do (`current-context`). If the account holds the `can_delete` role or one of `delete_by_keyword`, `admin_all_objects`, `edit_user`, `edit_roles`, the guard **does not start**; it also does not start if the account cannot be checked and says why. This answers the case of "someone gave it an admin account and nobody noticed". In an emergency, `GUARD_ALLOW_OVERPRIVILEGED=1` overrides this, and the override is logged.
 
 Recommended setup: a Splunk role that inherits only `user` and adds nothing (`mcp_reader`), and a service account with only that role (`mcp_svc`). Both the MCP server and the guard use this account.
 

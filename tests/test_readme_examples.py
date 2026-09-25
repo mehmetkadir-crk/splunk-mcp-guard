@@ -9,6 +9,7 @@ from splunk_mcp_guard.spl_inspector import SplInspector
 from pathlib import Path
 
 POLICY = load_policy(Path(__file__).resolve().parents[1] / "policy" / "strict.yaml")
+POLICY.spl.use_splunk_parser = False  # local checks only; no Splunk in CI
 ROLE = POLICY.roles["analyst"]
 
 BLOCKED = [
@@ -25,13 +26,26 @@ BLOCKED = [
     ("index=_internal | head 5", "outside principal scope: _internal"),
     ("index=main earliest=-90d | stats count", "reaches past floor"),
     ("delete", "denied command(s): delete"),
+    ("index=main OR index!=main", "must start with index"),
+    ("index=main OR sourcetype=WinEventLog:Security", "must start with index"),
+    ("index=main OR(sourcetype=x)", "must start with index"),
+    ("index=main OR!sourcetype=x", "must start with index"),
+    ("| tstats count where index=main OR(sourcetype=x)", "where index="),
+    ("index=main | append [search sourcetype=linux_secure]", "must start with index"),
+    ("| tstats count from datamodel=Authentication", "where index="),
+    ("| loadjob scheduler__admin__search__x", "not allowed for this role"),
+    ("index=main earliest=0", "reaches past floor"),
+    ("index=main O'Brien | delete", "denied command(s): delete"),
+    ("index=main ```c \" ``` | delete", "denied command(s): delete"),
+    ("index=main | `evil`", "macros"),
+    ("index=main | dbxquery connection=x query=\"DROP TABLE t\"", "dbxquery"),
 ]
 
 ALLOWED = [
     "index=main | stats count by sourcetype",
     "index=wineventlog EventCode=4625 | stats count by user",
     "index=main error | head 10",
-    "error index=main | head 10",
+    "index=main error OR warning | head 10",
     'index=main | eval note="| delete" | table note',
 ]
 
@@ -49,5 +63,5 @@ async def test_allowed_examples(spl):
 
 
 async def test_keyword_at_start_is_a_search_term():
-    r = await SplInspector(POLICY.spl, None).inspect("error | head 10", allowed_indexes=ROLE.indexes)
-    assert "error" not in r.commands
+    r = await SplInspector(POLICY.spl, None).inspect("error index=main | head 10", allowed_indexes=["*"])
+    assert r.ok and "error" not in r.commands

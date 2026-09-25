@@ -1,9 +1,6 @@
-# splunk-mcp-guard policy — AUDIT-ONLY profile
-#
-# Blocks nothing. Every tool call is forwarded and written to the audit log,
-# results are tagged as untrusted data and scanned for injection markers.
-# Use this first on an existing deployment to see what the assistant actually
-# does, then move to `engineer` or `strict`.
+# audit-only: blocks nothing. Every call is forwarded and logged, and results
+# are still tagged and scanned. Use it first on an existing setup to see what
+# the assistant does, then move to engineer or strict.
 
 version: 1
 profile: audit-only
@@ -17,14 +14,11 @@ identity:
   default_principal: anonymous
 preflight:
   enabled: false
-  refuse_if_backend_has:
-  - can_delete
-  - admin_all_objects
-  - edit_user
-  - edit_roles
+  refuse_if_backend_has: [can_delete, delete_by_keyword, admin_all_objects, edit_user, edit_roles, edit_roles_grantable, change_authentication]
   override_env: GUARD_ALLOW_OVERPRIVILEGED
 spl:
   use_splunk_parser: true
+  require_parser: false         # reject searches when the parser cannot be reached
   max_events: 1000
   earliest_floor: -30d
   forbid_wildcard_index: true
@@ -166,7 +160,10 @@ audit:
   alert_on_denied: true
   denied_threshold: 3
   window_seconds: 300
-  hec_url: null
+  hec_url: null               # e.g. https://splunk.example:8088, token in GUARD_HEC_TOKEN
+  hec_verify_tls: true
+  hec_ca_bundle: null
+  hec_index: null
   redact_arg_keys:
   - password
   - token
@@ -174,15 +171,17 @@ audit:
   - authorization
   - splunk_password
 approval:
-  # How approve-class tools reach a human.
-  #   elicit : MCP elicitation only (client must support it)
-  #   file   : out-of-band directory only (splunk-mcp-guard approve <id>)
-  #   auto   : elicitation first, directory when the client cannot elicit
-  # The directory is a trust boundary: keep it where the model's own tools
-  # cannot write, or the model can approve itself.  Override: GUARD_APPROVAL_DIR
+  # auto: ask through the client, fall back to the approval directory.
+  # Whoever can write to the directory can approve; keep it away from the
+  # assistant's own tools. GUARD_APPROVAL_DIR overrides dir.
   mode: auto
   dir: ./guard-approvals
   timeout_seconds: 120
+
+# MCP resources and prompts from the backend are not covered by the tool rules.
+extras:
+  resources: allow
+  prompts: allow
 
 output:
   tag_untrusted: true

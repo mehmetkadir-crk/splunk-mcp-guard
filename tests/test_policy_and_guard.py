@@ -16,8 +16,6 @@ from splunk_mcp_guard.spl_inspector import SplInspector
 ROOT = Path(__file__).resolve().parents[1]
 
 
-# ------------------------------------------------------------ policy files
-
 @pytest.mark.parametrize("name", ["strict", "engineer", "audit-only"])
 def test_shipped_profiles_load(name):
     p = load_policy(ROOT / "policy" / f"{name}.yaml")
@@ -44,8 +42,6 @@ def test_bad_policy_rejected(tmp_path):
     with pytest.raises(PolicyError):
         load_policy(bad)
 
-
-# ------------------------------------------------------------ guard pipeline
 
 class FakeMsg:
     def __init__(self, name, arguments):
@@ -87,7 +83,7 @@ async def forward_ok(ctx):
 
 
 def audit_lines(tmp_path):
-    return [json.loads(l) for l in (tmp_path / "audit.jsonl").read_text(encoding="utf-8").splitlines()]
+    return [json.loads(line) for line in (tmp_path / "audit.jsonl").read_text(encoding="utf-8").splitlines()]
 
 
 async def test_allow_tool_forwards_and_tags_output(tmp_path):
@@ -208,8 +204,6 @@ async def test_structured_content_is_guarded_too(tmp_path):
     assert ev["extra"]["redactions"] >= 1 and ev["extra"]["injection_hits"]
 
 
-# ------------------------------------------------------------ out-of-band approval
-
 import asyncio  # noqa: E402
 
 from splunk_mcp_guard.approval import decide, list_pending  # noqa: E402
@@ -295,5 +289,7 @@ def test_cli_pending_and_decide(tmp_path, capsys):
     d = tmp_path / "ap"
     assert main(["pending", "--dir", str(d)]) == 0
     assert "no pending" in capsys.readouterr().out
-    assert main(["approve", "nope", "--dir", str(d)]) == 0
+    assert main(["approve", "1790000000-abcdef", "--dir", str(d)]) == 0
     assert "no pending request" in capsys.readouterr().out
+    assert main(["approve", "../../etc/passwd", "--dir", str(d)]) == 0
+    assert "invalid request id" in capsys.readouterr().out

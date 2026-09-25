@@ -9,8 +9,6 @@ from splunk_mcp_guard.spl_inspector import (
 )
 
 
-# ------------------------------------------------------------ tokenizer
-
 @pytest.mark.parametrize(
     "spl,expected",
     [
@@ -34,11 +32,9 @@ def test_nested_subsearch():
     assert {"sendemail", "head", "search"} <= tokenize_commands(spl)
 
 
-# ------------------------------------------------------------ indexes / time
-
 def test_extract_indexes():
     assert extract_indexes("index=proxy OR index=dns | stats count") == {"proxy", "dns"}
-    assert extract_indexes('index="win events" | head 1') == {"win events"} or True  # quoted names are best-effort
+    assert extract_indexes('index="win events" | head 1') == {"win events"}
     assert extract_indexes("index IN (a, b) | stats count") == {"a", "b"}
     assert extract_indexes("| tstats count where index=x") == {"x"}
     assert extract_indexes("sourcetype=foo | head 1") == set()
@@ -48,10 +44,13 @@ def test_relative_seconds():
     assert relative_seconds("-24h") == 86400
     assert relative_seconds("-7d@d") == 7 * 86400
     assert relative_seconds("now") == 0
-    assert relative_seconds("2026-01-01T00:00:00") is None
+    assert relative_seconds("-10yrs") == 10 * 31557600
+    assert relative_seconds("-29d@y") > 300 * 86400
+    assert relative_seconds("2026-01-01T00:00:00") > 0
+    assert relative_seconds("0") > 50 * 31557600   # epoch 0 = all time
+    assert relative_seconds("rt-5m") == 300
+    assert relative_seconds("banana") is None
 
-
-# ------------------------------------------------------------ inspector
 
 def strict_policy(**over):
     base = dict(
@@ -132,9 +131,22 @@ async def test_parser_unavailable_is_advisory_not_fatal():
         async def commands(self, spl):
             raise ParserUnavailable("offline")
 
-    ins = SplInspector(strict_policy(use_splunk_parser=True), parser=Broken("https://x"))
+    ins = SplInspector(strict_policy(use_splunk_parser=True, require_parser=False), parser=Broken("https://x"))
     r = await ins.inspect("index=a | head 1")
     assert r.ok and any("parser unavailable" in x for x in r.reasons) and not r.parser_used
+
+
+async def test_parser_required_by_default_fails_closed():
+    from splunk_mcp_guard.spl_inspector import ParserUnavailable, SplunkParser
+
+    class Broken(SplunkParser):
+        async def commands(self, spl):
+            raise ParserUnavailable("offline")
+
+    r = await SplInspector(strict_policy(use_splunk_parser=True), parser=Broken("https://x")).inspect("index=a | head 1")
+    assert not r.ok and any("required but unavailable" in x for x in r.reasons)
+    r = await SplInspector(strict_policy(use_splunk_parser=True), parser=None).inspect("index=a | head 1")
+    assert not r.ok and any("not configured" in x for x in r.reasons)
 
 
 async def test_parser_expands_macro_hiding_delete():

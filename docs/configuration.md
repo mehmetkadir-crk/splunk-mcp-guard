@@ -7,10 +7,11 @@ Everything the guard does is driven by one YAML policy file. Start from one of t
 ```yaml
 version: 1
 defaults: { role: analyst, unknown_tool: deny }
-identity: { source: env, env_var: GUARD_PRINCIPAL }      # or header: X-Guard-Principal
-preflight: { refuse_if_backend_has: [can_delete, admin_all_objects] }
+identity: { source: env, env_var: GUARD_PRINCIPAL }      # or source: header (see below)
+preflight: { refuse_if_backend_has: [can_delete, delete_by_keyword, admin_all_objects, edit_user, edit_roles] }
 spl:
   use_splunk_parser: true
+  require_parser: true                                   # refuse searches when the parser is unreachable
   allowed_commands: [search, stats, table, …]            # empty = denylist mode
   max_events: 1000
   earliest_floor: "-30d"
@@ -25,7 +26,9 @@ roles:
       deny:    [delete_saved_search, create_config, manage_apps, …]
     spl_args: { run_splunk_search: [query] }
 principals: { alice: analyst, bob: engineer }
-audit: { path: ./guard-audit.jsonl, denied_threshold: 3, window_seconds: 300 }
+audit: { path: ./guard-audit.jsonl, denied_threshold: 3, window_seconds: 300,
+         hec_url: null, hec_verify_tls: true, hec_ca_bundle: null, hec_index: null }
+extras: { resources: deny, prompts: deny }               # MCP resources and prompts from the backend
 output: { tag_untrusted: true, detect_injection: true, redact_secrets: true }
 ```
 
@@ -38,9 +41,20 @@ Two independent views are combined; a command must be acceptable in both.
 - A **local tokenizer** walks the pipeline, descends into `[ subsearches ]`, ignores quoted strings. Works offline. Cannot expand macros.
 - **Splunk's parser** (`POST /services/search/parser`) expands macros and reports what would actually run. Needs a token with search access.
 
-Hard-denied regardless of policy: `delete outputlookup outputcsv collect mcollect meventcollect tscollect summaryindex sendemail sendalert script runshellscript run map` and the `si*` summary-indexing family.
+Hard-denied regardless of policy: `delete outputlookup outputcsv outputtext collect mcollect meventcollect tscollect summaryindex sendemail sendalert sendresults script runshellscript run map savedsearch dump outputtelemetry dbxquery dbxoutput ldapmodify deletemodel` and the `si*` summary-indexing family.
 
-Also enforced: index scope per role, `index=*` ban, `earliest` floor (relative times), result cap.
+The tokenizer treats only double quotes as quotes, removes ` ``` ` comments, and refuses unbalanced quotes or brackets and stages whose command it cannot identify. Macros need the parser, and are refused for roles with an index scope.
+
+Index scope, for roles whose `indexes` is not `["*"]`:
+
+- every search and subsearch must start with `index=...`, `index IN (...)` or `(index=a OR index=b)`, and the next word must not be `OR` (in SPL, `index=a foo OR bar` means index a AND (foo OR bar), while `index=a OR foo` is not limited to index a);
+- `tstats` / `mstats` need `where index=...` in the same form;
+- `metadata`, `eventcount` and `dbinspect` must name only in-scope indexes;
+- other generating commands that read events (`datamodel`, `from`, `pivot`, `loadjob`, ...) are refused.
+
+Time floor: every `earliest=`, `starttime=` and the `earliest_time` argument is checked. Relative times, snaps to a week or longer, epoch values (`0` is all time), absolute dates and `rt` are evaluated; anything that cannot be evaluated is refused.
+
+Result cap: `count` and `max_results` must be between 1 and `max_events`.
 
 > Verify on your Splunk version that the parser response flattens subsearch commands; the local tokenizer covers them either way.
 
@@ -74,7 +88,13 @@ One JSON line per decision:
  "reason": "index(es) outside principal scope: hr_app", "args": {"query": "index=hr_app | head 5"}}
 ```
 
-Three denials from one principal inside the window produce a `kind: alert` line. Set `audit.hec_url` and `GUARD_HEC_TOKEN` to ship events to Splunk itself and alert on `sourcetype=mcp:guard`.
+Three denials from one principal inside the window produce a `kind: alert` line. String values in `args` are checked for secrets, and values longer than 20,000 characters are cut with a sha256 of the full value. Every line has `"schema": 1`.
+
+Set `audit.hec_url` and `GUARD_HEC_TOKEN` to also send events to Splunk HEC (`sourcetype=mcp:guard`). Sending happens in a background thread with TLS verification on (`hec_verify_tls`, `hec_ca_bundle`); events that cannot be delivered are dropped, and the local file stays complete.
+
+## Identity in HTTP mode
+
+With `identity.source: header` the guard reads the user from `X-Guard-Principal`, but only if the request also carries `X-Guard-Proxy-Secret` equal to the `GUARD_PROXY_SECRET` environment variable. Put an authenticating reverse proxy in front of the guard that sets both headers and strips any client-sent copies. Without the variable the guard does not start in header mode.
 
 ## Environment variables
 
@@ -86,7 +106,8 @@ Three denials from one principal inside the window produce a `kind: alert` line.
 | `GUARD_SPLUNK_VERIFY_SSL` | `false` only for lab instances with self-signed certificates |
 | `GUARD_AUDIT_PATH` | Absolute path of the audit log (MCP clients start the guard from an unpredictable directory) |
 | `GUARD_APPROVAL_DIR` | Absolute path of the out-of-band approval directory |
-| `GUARD_ALLOW_OVERPRIVILEGED` | `1` starts the guard even if preflight finds forbidden capabilities. Emergencies only; it is logged. |
+| `GUARD_ALLOW_OVERPRIVILEGED` | `1` starts the guard even if preflight fails (forbidden role or capability, or the account could not be checked). Emergencies only; it writes an `alert` line. |
+| `GUARD_PROXY_SECRET` | Shared secret between the reverse proxy and the guard in header identity mode |
 | `GUARD_HEC_TOKEN` | HEC token when `audit.hec_url` is set |
 | `GUARD_HOME` | Where `init` keeps its files (default `~/.splunk-mcp-guard`); `pending`/`approve` use its `approvals` folder by default |
 

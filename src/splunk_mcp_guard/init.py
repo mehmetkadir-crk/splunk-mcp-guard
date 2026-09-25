@@ -1,19 +1,10 @@
-"""``splunk-mcp-guard init`` — guided setup.
+"""`splunk-mcp-guard init`: guided setup.
 
-Asks a few questions, then:
-
-1. creates a per-user home (``~/.splunk-mcp-guard``) holding a copy of the chosen
-   policy profile, the backend description, the audit log and the approval
-   directory, so nothing depends on where the repository was cloned;
-2. checks the Splunk service account (preflight) before anything is written;
-3. finds the MCP client's config file (Claude Desktop on Windows, including the
-   Microsoft Store build, macOS and Linux), backs it up, and adds the guard;
-4. warns about any *unguarded* Splunk MCP server left in the same config,
-   because a model that can reach the backend directly can bypass the guard.
-
-Every file it touches is backed up first.  ``--print`` writes nothing to the
-client config and prints the block instead, for clients other than Claude
-Desktop.
+Asks a few questions, checks the Splunk account, writes a per-user home
+(~/.splunk-mcp-guard) with the policy, backend file, audit log and approval
+folder, then adds the guard to the Claude Desktop config (backed up first).
+Offers to remove Splunk MCP entries that would bypass the guard. `--print`
+only prints the config block.
 """
 
 from __future__ import annotations
@@ -40,9 +31,6 @@ def _is_windows() -> bool:
 PROFILES = ("strict", "engineer", "audit-only")
 
 
-# ------------------------------------------------------------------ locations
-
-
 def guard_home() -> Path:
     """Per-user directory for policy, backend, audit log and approvals."""
     env = os.environ.get("GUARD_HOME")
@@ -59,8 +47,7 @@ def profiles_dir() -> Path | None:
 
 
 def guard_command() -> tuple[str, list[str]]:
-    """How an MCP client should start the guard: the console script if it exists,
-    otherwise the current interpreter with ``-m``.  Both are absolute paths."""
+    """Absolute command for the MCP client: the console script, else python -m."""
     exe_name = "splunk-mcp-guard.exe" if os.name == "nt" else "splunk-mcp-guard"
     script = Path(sys.executable).parent / exe_name
     if script.is_file():
@@ -78,7 +65,7 @@ def client_config_candidates() -> list[Path]:
     if os.name == "nt":
         local = os.environ.get("LOCALAPPDATA")
         if local:
-            # Microsoft Store (MSIX) build virtualises %APPDATA% under its package
+            # Microsoft Store build keeps %APPDATA% under its package folder
             for pkg in sorted(Path(local, "Packages").glob("Claude_*")):
                 out.append(pkg / "LocalCache" / "Roaming" / "Claude" / "claude_desktop_config.json")
         roaming = os.environ.get("APPDATA")
@@ -96,13 +83,10 @@ def find_client_config() -> Path | None:
     for p in cands:
         if p.is_file():
             return p
-    for p in cands:  # app installed but never configured: its folder exists
+    for p in cands:  # installed but never configured
         if p.parent.is_dir():
             return p
     return None
-
-
-# ------------------------------------------------------------------ answers
 
 
 @dataclass
@@ -191,9 +175,6 @@ def collect_answers() -> Answers:
     return a
 
 
-# ------------------------------------------------------------------ building
-
-
 def backend_config(a: Answers) -> dict[str, Any]:
     if a.backend_url:
         return {"mcpServers": {"splunk": {"url": a.backend_url, "transport": "http"}}}
@@ -207,7 +188,7 @@ def backend_config(a: Answers) -> dict[str, Any]:
 
 
 def write_home(a: Answers, home: Path) -> dict[str, Path]:
-    """Create the per-user home.  Existing policy is kept (it may have been edited)."""
+    """Create the per-user home. An existing policy file is kept."""
     src = profiles_dir()
     if src is None:
         raise RuntimeError("shipped policy profiles not found; reinstall splunk-mcp-guard")
@@ -228,8 +209,7 @@ def write_home(a: Answers, home: Path) -> dict[str, Path]:
 
 
 def _set_indexes(text: str, indexes: list[str]) -> str:
-    """Replace every role's ``indexes:`` line with the given list (profiles keep it on one line
-    or as a block; both are handled)."""
+    """Set every role's `indexes:` (inline or block list) to the given list."""
     import re
     value = "[" + ", ".join(indexes) + "]"
     lines = text.splitlines()
@@ -289,7 +269,7 @@ def unguarded_splunk_servers(cfg: dict[str, Any], backend: dict[str, Any]) -> li
 
 
 def update_client_config(path: Path, entry: dict[str, Any], remove: list[str]) -> Path | None:
-    """Back up, add/replace the guard entry, drop *remove*.  Returns the backup path."""
+    """Back up the config, add the guard entry, drop `remove`. Returns the backup path."""
     cfg: dict[str, Any] = {}
     backup = None
     if path.is_file():
@@ -315,9 +295,6 @@ def _mask(entry: dict[str, Any]) -> dict[str, Any]:
     return e
 
 
-# ------------------------------------------------------------------ preflight
-
-
 def check_account(a: Answers, forbidden: list[str]):
     from .preflight import check_backend_account
     return asyncio.run(check_backend_account(
@@ -325,9 +302,6 @@ def check_account(a: Answers, forbidden: list[str]):
         username=a.username or None, password=a.password or None,
         verify_ssl=a.verify_ssl, forbidden=forbidden,
     ))
-
-
-# ------------------------------------------------------------------ CLI
 
 
 def main(argv: list[str]) -> int:
@@ -343,7 +317,7 @@ def main(argv: list[str]) -> int:
     a = collect_answers()
     home = guard_home()
 
-    # 1) account check before anything is written
+    # check the account before writing anything
     if not ns.skip_check:
         from .policy import load_policy
         src = profiles_dir()
@@ -363,14 +337,12 @@ def main(argv: list[str]) -> int:
         else:
             print(f"  ok: {rep.username!r}, roles {rep.roles}, no forbidden capabilities")
 
-    # 2) per-user home
     paths = write_home(a, home)
     entry = server_entry(a, paths)
     print(f"\nFiles in {home}:")
     for k in ("policy", "backend", "audit", "approvals"):
         print(f"  {k:10} {paths[k]}")
 
-    # 3) client config
     block = {"mcpServers": {SERVER_NAME: entry}}
     if ns.print_only:
         print("\nAdd this to your MCP client's config (password shown in full, keep it private):\n")
@@ -408,6 +380,6 @@ def main(argv: list[str]) -> int:
     print(f"\nDone. Backup: {backup or '(new file)'}")
     print("Note: the Splunk password/token is stored in that config file, readable by your user account.")
     print("\nNext: fully quit and reopen Claude Desktop, then ask it to list Splunk indexes.")
-    print(f"Pending approvals:  splunk-mcp-guard pending")
+    print("Pending approvals:  splunk-mcp-guard pending")
     print(f"Edit your policy:   {paths['policy']}")
     return 0

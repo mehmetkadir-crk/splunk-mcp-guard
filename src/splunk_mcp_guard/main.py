@@ -1,15 +1,11 @@
-"""CLI entry point.
+"""Command line entry point.
 
-    splunk-mcp-guard --policy policy/strict.yaml --backend examples/backend.deslicer.json
-    splunk-mcp-guard init                           # guided setup (policy, account check, client config)
-    splunk-mcp-guard pending  [--policy ...]        # out-of-band approvals waiting
-    splunk-mcp-guard approve <id> [--policy ...]
-    splunk-mcp-guard reject  <id> [--policy ...]
+    splunk-mcp-guard --policy <policy.yaml> --backend <backend.json>
+    splunk-mcp-guard init
+    splunk-mcp-guard pending | approve <id> | reject <id>
 
-The backend file is a standard MCP config (``{"mcpServers": {...}}``) describing
-how to launch or reach the *real* Splunk MCP server.  The guard starts it,
-sits in front of it, and exposes the filtered surface over stdio (default) or
-HTTP.
+The backend file is an MCP config ({"mcpServers": {...}}) that says how to
+start or reach the real Splunk MCP server.
 """
 
 from __future__ import annotations
@@ -57,7 +53,7 @@ _APPROVAL_CMDS = {"pending", "approve", "reject"}
 
 
 def _approval_cli(argv: list[str]) -> int:
-    """``pending`` / ``approve <id>`` / ``reject <id>`` — run by a human in a terminal."""
+    """pending / approve <id> / reject <id>, run by a person in a terminal."""
     from .approval import decide, list_pending
 
     ap = argparse.ArgumentParser(prog=f"splunk-mcp-guard {argv[0]}")
@@ -119,8 +115,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[guard] policy error: {e}", file=sys.stderr)
         return 2
 
-    # MCP clients start the guard from an unpredictable working directory, so
-    # allow the audit path to be pinned from the environment.
+    # MCP clients start the guard from an unknown working directory
     audit_override = _env("GUARD_AUDIT_PATH")
     if audit_override:
         policy.audit.path = audit_override
@@ -141,26 +136,32 @@ def main(argv: list[str] | None = None) -> int:
         print("[guard] backend file must contain an 'mcpServers' object", file=sys.stderr)
         return 2
 
+    if policy.identity.source == "header" and not _env(policy.identity.proxy_secret_env):
+        print(f"[guard] identity.source is 'header' but {policy.identity.proxy_secret_env} is not set; "
+              "refusing to start", file=sys.stderr)
+        return 2
+    if ns.transport == "http" and policy.identity.source != "header":
+        print("[guard] WARNING: HTTP transport with identity.source "
+              f"'{policy.identity.source}': every caller gets the same principal", file=sys.stderr)
+
     audit = AuditLog(policy.audit)
-    parser = build_parser_from_env() if policy.spl.use_splunk_parser else None
+    creds = build_parser_from_env()
+    parser = creds if policy.spl.use_splunk_parser else None
     inspector = SplInspector(policy.spl, parser)
     output = OutputGuard(policy.output)
 
     if policy.preflight.enabled and not ns.skip_preflight:
-        rep = asyncio.run(_preflight(policy, parser))
-        audit.preflight(principal="startup", ok=rep.ok, detail=rep.as_dict())
+        rep = asyncio.run(_preflight(policy, creds))
+        override = _env(policy.preflight.override_env, "").lower() in {"1", "true", "yes"}
+        audit.preflight(principal="startup", ok=rep.ok, detail=rep.as_dict(), override=override and not rep.ok)
         if not rep.ok:
-            override = os.environ.get(policy.preflight.override_env, "").lower() in {"1", "true", "yes"}
-            msg = (f"[guard] preflight: backend account {rep.username!r} carries forbidden "
-                   f"capabilities {rep.offending}" if rep.offending else f"[guard] preflight failed: {rep.error}")
-            if override and rep.offending:
-                print(msg + f" — continuing because {policy.preflight.override_env} is set", file=sys.stderr)
-            elif rep.offending:
-                print(msg + f". Refusing to start. Set {policy.preflight.override_env}=1 to override.",
+            msg = (f"[guard] preflight: account {rep.username!r} has forbidden roles/capabilities "
+                   f"{rep.offending}" if rep.offending else f"[guard] preflight failed: {rep.error}")
+            if not override:
+                print(f"{msg}. Refusing to start. Set {policy.preflight.override_env}=1 to override.",
                       file=sys.stderr)
                 return 3
-            else:
-                print(msg + " — continuing (account could not be checked)", file=sys.stderr)
+            print(f"{msg}. Continuing because {policy.preflight.override_env} is set.", file=sys.stderr)
 
     proxy = create_proxy(backend_cfg, name="splunk-mcp-guard")
     proxy.add_middleware(GuardMiddleware(policy, audit, inspector, output))
@@ -171,7 +172,6 @@ def main(argv: list[str] | None = None) -> int:
           f"approval={policy.approval.mode}:{Path(policy.approval.dir).resolve()}", file=sys.stderr)
 
     if ns.transport == "stdio":
-        # no banner: stdout belongs to the JSON-RPC stream
         proxy.run(show_banner=False)
     else:
         if ns.host not in {"127.0.0.1", "localhost", "::1"}:

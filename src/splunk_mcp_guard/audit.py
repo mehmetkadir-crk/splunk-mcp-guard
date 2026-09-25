@@ -1,17 +1,11 @@
-"""Append-only audit log plus a small denial-rate alarm.
-
-Every decision the guard makes is written as one JSON line.  Denied calls are
-counted per principal inside a sliding window; crossing the threshold emits an
-``alert`` record.  The intent: a restricted user (or a manipulated model acting
-on their behalf) probing for tools they should not have is itself a security
-event, not just a failed request.
-"""
+"""JSONL audit log with a per-principal denial alarm and optional HEC shipping."""
 
 from __future__ import annotations
 
 import hashlib
 import json
 import os
+import queue
 import threading
 import time
 from collections import defaultdict, deque
@@ -19,22 +13,27 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .output_guard import is_secret_key, redact_text
 from .policy import AuditPolicy
+
+SCHEMA = 1
+MAX_VALUE = 20000
 
 
 @dataclass
 class AuditEvent:
     ts: float
-    kind: str  # decision | alert | preflight | error
+    kind: str  # decision | alert | preflight | error | extra
     principal: str
     role: str | None
     tool: str | None
-    decision: str | None  # allow | inspect-ok | inspect-deny | approve-ok | approve-deny | deny
+    decision: str | None
     reason: str | None = None
     args: dict[str, Any] | None = None
     result_sha256: str | None = None
     duration_ms: float | None = None
     extra: dict[str, Any] = field(default_factory=dict)
+    schema: int = SCHEMA
 
 
 class AuditLog:
@@ -42,17 +41,22 @@ class AuditLog:
         self.policy = policy
         self.path = Path(policy.path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        if not self.path.exists():
+            self.path.touch()
+            _private(self.path)
         self._lock = threading.Lock()
         self._denials: dict[str, deque[float]] = defaultdict(deque)
-
-    # ----------------------------------------------------------------- write
+        self._hec: _HecShipper | None = None
+        if policy.hec_url and os.environ.get(policy.hec_token_env):
+            self._hec = _HecShipper(policy, os.environ[policy.hec_token_env])
 
     def write(self, ev: AuditEvent) -> None:
         line = json.dumps(asdict(ev), ensure_ascii=False, default=str)
         with self._lock:
             with self.path.open("a", encoding="utf-8") as f:
                 f.write(line + "\n")
-        self._maybe_hec(ev)
+        if self._hec:
+            self._hec.put(ev)
 
     def decision(self, *, principal: str, role: str | None, tool: str, decision: str,
                  reason: str | None = None, args: dict[str, Any] | None = None,
@@ -68,31 +72,40 @@ class AuditLog:
         if decision.endswith("deny") and self.policy.alert_on_denied:
             self._count_denial(principal, tool, reason)
 
-    def preflight(self, principal: str, ok: bool, detail: dict[str, Any]) -> None:
+    def preflight(self, principal: str, ok: bool, detail: dict[str, Any], override: bool = False) -> None:
+        decision = "ok" if ok else ("override" if override else "refused")
         self.write(AuditEvent(ts=time.time(), kind="preflight", principal=principal, role=None,
-                              tool=None, decision="ok" if ok else "refused", extra=detail))
+                              tool=None, decision=decision, extra=detail))
+        if override:
+            self.write(AuditEvent(ts=time.time(), kind="alert", principal=principal, role=None,
+                                  tool=None, decision="preflight-override",
+                                  reason=f"started despite failed preflight: {detail}"))
 
     def error(self, principal: str, tool: str | None, message: str) -> None:
         self.write(AuditEvent(ts=time.time(), kind="error", principal=principal, role=None,
                               tool=tool, decision=None, reason=message))
 
-    # ------------------------------------------------------------- redaction
+    def extra(self, *, principal: str, role: str | None, what: str, name: str, decision: str,
+              reason: str | None = None) -> None:
+        self.write(AuditEvent(ts=time.time(), kind="extra", principal=principal, role=role,
+                              tool=f"{what}:{name}", decision=decision, reason=reason))
+        if decision.endswith("deny") and self.policy.alert_on_denied:
+            self._count_denial(principal, f"{what}:{name}", reason)
 
-    def redact(self, args: dict[str, Any] | None) -> dict[str, Any] | None:
-        if not args:
-            return args
-        out: dict[str, Any] = {}
+    def redact(self, args: Any, key: str | None = None) -> Any:
         keys = set(self.policy.redact_arg_keys)
-        for k, v in args.items():
-            if k.lower() in keys or any(s in k.lower() for s in keys):
-                out[k] = "***"
-            elif isinstance(v, str) and len(v) > 4000:
-                out[k] = v[:4000] + f"...(+{len(v) - 4000} chars)"
-            else:
-                out[k] = v
-        return out
-
-    # ------------------------------------------------------------- alarming
+        if isinstance(args, dict):
+            return {k: self.redact(v, str(k)) for k, v in args.items()}
+        if isinstance(args, list):
+            return [self.redact(v, key) for v in args]
+        if key is not None and (key.lower() in keys or is_secret_key(key)):
+            return "***"
+        if isinstance(args, str):
+            v, _ = redact_text(args)
+            if len(v) > MAX_VALUE:
+                return f"{v[:MAX_VALUE]}...(+{len(v) - MAX_VALUE} chars, sha256={_sha(args)})"
+            return v
+        return args
 
     def _count_denial(self, principal: str, tool: str, reason: str | None) -> None:
         now = time.time()
@@ -109,21 +122,53 @@ class AuditLog:
             ))
             dq.clear()
 
-    def _maybe_hec(self, ev: AuditEvent) -> None:
-        url = self.policy.hec_url
-        if not url:
-            return
-        token = os.environ.get(self.policy.hec_token_env)
-        if not token:
-            return
+
+class _HecShipper:
+    """Sends events to Splunk HEC from a background thread.
+
+    Events that cannot be delivered are dropped; the local file stays the
+    source of truth.
+    """
+
+    def __init__(self, policy: AuditPolicy, token: str):
+        self.url = str(policy.hec_url).rstrip("/") + "/services/collector/event"
+        self.token = token
+        self.index = policy.hec_index
+        self.verify: bool | str = policy.hec_ca_bundle or policy.hec_verify_tls
+        self.q: queue.Queue[AuditEvent] = queue.Queue(maxsize=10000)
+        threading.Thread(target=self._run, name="guard-hec", daemon=True).start()
+
+    def put(self, ev: AuditEvent) -> None:
         try:
-            import httpx
-            payload = {"event": asdict(ev), "sourcetype": "mcp:guard", "source": "splunk-mcp-guard"}
-            httpx.post(url.rstrip("/") + "/services/collector/event",
-                       json=payload, headers={"Authorization": f"Splunk {token}"},
-                       timeout=3.0, verify=False)
-        except Exception:
-            # never let audit shipping break the request path
+            self.q.put_nowait(ev)
+        except queue.Full:
+            pass
+
+    def _run(self) -> None:
+        import httpx
+        with httpx.Client(verify=self.verify, timeout=5.0) as client:
+            while True:
+                ev = self.q.get()
+                payload: dict[str, Any] = {"time": ev.ts, "event": asdict(ev),
+                                           "sourcetype": "mcp:guard", "source": "splunk-mcp-guard"}
+                if self.index:
+                    payload["index"] = self.index
+                for attempt in range(3):
+                    try:
+                        r = client.post(self.url, json=payload,
+                                        headers={"Authorization": f"Splunk {self.token}"})
+                        if r.status_code < 500:
+                            break
+                    except Exception:
+                        pass
+                    time.sleep(2 ** attempt)
+
+
+def _private(path: Path) -> None:
+    if os.name != "nt":
+        try:
+            os.chmod(path, 0o600)
+        except OSError:
             pass
 
 

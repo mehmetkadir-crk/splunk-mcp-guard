@@ -1,12 +1,7 @@
-"""Start-up check of the *backend* Splunk account.
+"""Startup check of the Splunk account the guard and the MCP server use.
 
-The guard cannot see which account the wrapped MCP server uses, but it can be
-told (same env vars) and then ask Splunk what that account is allowed to do.
-If the account carries capabilities the policy says it should never need
-(``can_delete``, ``admin_all_objects`` by default), the guard refuses to start.
-
-This is the answer to "a fully privileged account was handed out and nobody
-noticed": the guard notices, at boot, and says so.
+The guard asks Splunk who the account is and what it may do, and refuses to
+start if it holds a forbidden role or capability (see policy DEFAULT_FORBIDDEN).
 """
 
 from __future__ import annotations
@@ -48,7 +43,7 @@ async def check_backend_account(
     elif username and password:
         auth = (username, password)
     else:
-        return PreflightReport(ok=False, error="no backend credentials for preflight")
+        return PreflightReport(ok=False, error="no Splunk credentials for preflight")
 
     base = base_url.rstrip("/")
     try:
@@ -60,20 +55,26 @@ async def check_backend_account(
             content = entry.get("content", {})
             who = content.get("username") or entry.get("name")
             roles = [str(x) for x in content.get("roles", [])]
-            caps: set[str] = set(str(x) for x in content.get("capabilities", []) or [])
+            caps: set[str] = {str(x) for x in content.get("capabilities", []) or []}
 
-            # capabilities on current-context are sometimes empty; walk roles
+            # current-context does not always list capabilities; add the roles'
             for role in roles:
                 rr = await c.get(f"{base}/services/authorization/roles/{role}",
                                  params={"output_mode": "json"}, headers=headers, auth=auth)
                 if rr.status_code != 200:
                     continue
                 rc = (rr.json().get("entry") or [{}])[0].get("content", {})
-                caps |= set(str(x) for x in rc.get("capabilities", []) or [])
-                caps |= set(str(x) for x in rc.get("imported_capabilities", []) or [])
+                caps |= {str(x) for x in rc.get("capabilities", []) or []}
+                caps |= {str(x) for x in rc.get("imported_capabilities", []) or []}
+                roles += [str(x) for x in rc.get("imported_roles", []) or [] if str(x) not in roles]
     except Exception as e:
-        return PreflightReport(ok=False, error=str(e))
+        return PreflightReport(ok=False, error=f"{e.__class__.__name__}: {e}")
 
-    offending = sorted(c for c in caps if c in set(forbidden))
+    if not roles and not caps:
+        return PreflightReport(ok=False, username=who,
+                               error="could not read the account's roles or capabilities")
+
+    have = caps | set(roles)
+    offending = sorted(x for x in set(forbidden) if x in have)
     return PreflightReport(ok=not offending, username=who, roles=roles,
                            capabilities=caps, offending=offending)

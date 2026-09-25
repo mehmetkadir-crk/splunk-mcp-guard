@@ -1,12 +1,6 @@
-# splunk-mcp-guard policy — STRICT profile
-#
-# Intended for analyst triage. Read-only discovery and documentation tools pass
-# untouched, searches are inspected, every write is denied, unknown tools are
-# denied. Two roles: `analyst` (default) and `engineer` (may request writes via
-# human approval). Map people to roles under `principals`.
-#
-# Tool names below are the 55 tools exposed by deslicer/mcp-for-splunk as of
-# v0.6.x. Unknown tools fall back to `defaults.unknown_tool`.
+# strict: for analysts. Discovery and documentation tools pass, searches are
+# inspected, writes and unknown tools are denied. Map people to roles under
+# `principals`. Tool names are those of deslicer/mcp-for-splunk.
 
 version: 1
 profile: strict
@@ -23,17 +17,17 @@ identity:
 
 preflight:
   enabled: true
-  refuse_if_backend_has: [can_delete, admin_all_objects, edit_user, edit_roles]
+  refuse_if_backend_has: [can_delete, delete_by_keyword, admin_all_objects, edit_user, edit_roles, edit_roles_grantable, change_authentication]
   override_env: GUARD_ALLOW_OVERPRIVILEGED
 
 spl:
-  use_splunk_parser: true     # POST /services/search/parser; needs GUARD_SPLUNK_* or SPLUNK_* env
+  use_splunk_parser: true
+  require_parser: true        # reject searches when the parser cannot be reached
   max_events: 1000
   earliest_floor: "-30d"
   forbid_wildcard_index: true
   require_index: true
-  # Allowlist mode: any command not here (and not hard-denied) is rejected.
-  # Leave empty to switch to denylist-only mode.
+  # commands not listed here are rejected; an empty list means denylist only
   allowed_commands:
     - search
     - tstats
@@ -92,9 +86,8 @@ spl:
     - multikv
     - kv
     - extract
-    - loadjob
     - inputcsv
-  # Extra denies on top of the hard-coded set (delete, outputlookup, collect, sendemail, map, script …)
+  # in addition to the built-in list (delete, collect, outputlookup, sendemail, ...)
   denied_commands:
     - rest
     - savedsearch
@@ -103,8 +96,7 @@ spl:
 
 roles:
   analyst:
-    # Index scope enforced by the guard itself, independent of Splunk RBAC.
-    # A query naming any other index is denied before it reaches Splunk.
+    # searches must start with one of these indexes
     indexes: [main, wineventlog, dns, network, os, web]
     tools:
       allow:
@@ -249,19 +241,24 @@ audit:
   alert_on_denied: true
   denied_threshold: 3
   window_seconds: 300
-  hec_url: null               # e.g. https://splunk.local:8088 ; token from GUARD_HEC_TOKEN
+  hec_url: null               # e.g. https://splunk.example:8088, token in GUARD_HEC_TOKEN
+  hec_verify_tls: true
+  hec_ca_bundle: null
+  hec_index: null
   redact_arg_keys: [password, token, secret, authorization, splunk_password]
 
 approval:
-  # How approve-class tools reach a human.
-  #   elicit : MCP elicitation only (client must support it)
-  #   file   : out-of-band directory only (splunk-mcp-guard approve <id>)
-  #   auto   : elicitation first, directory when the client cannot elicit
-  # The directory is a trust boundary: keep it where the model's own tools
-  # cannot write, or the model can approve itself.  Override: GUARD_APPROVAL_DIR
+  # auto: ask through the client, fall back to the approval directory.
+  # Whoever can write to the directory can approve; keep it away from the
+  # assistant's own tools. GUARD_APPROVAL_DIR overrides dir.
   mode: auto
   dir: ./guard-approvals
   timeout_seconds: 120
+
+# MCP resources and prompts from the backend are not covered by the tool rules.
+extras:
+  resources: deny
+  prompts: deny
 
 output:
   tag_untrusted: true

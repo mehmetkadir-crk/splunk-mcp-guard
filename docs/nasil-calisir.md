@@ -50,7 +50,7 @@ Model `run_oneshot_search` tool'unu `index=main | delete` sorgusuyla çağırdı
 
 ## Açılışta ne olur: preflight
 
-Guard başlarken arkadaki hesabın adına Splunk'a "ben kimim, yetkilerim ne" diye sorar (`current-context`). Hesapta `can_delete`, `admin_all_objects`, `edit_user`, `edit_roles` varsa **başlamaz** ve nedenini yazar. "Birisi admin hesabı vermiş, kimse fark etmemiş" senaryosunun cevabı bu. Acil durumlar için `GUARD_ALLOW_OVERPRIVILEGED=1` ile geçilebilir; kayıt tutulur.
+Guard başlarken arkadaki hesabın adına Splunk'a "ben kimim, yetkilerim ne" diye sorar (`current-context`). Hesapta `can_delete` rolü ya da `delete_by_keyword`, `admin_all_objects`, `edit_user`, `edit_roles` yeteneklerinden biri varsa, ya da hesap kontrol edilemiyorsa **başlamaz** ve nedenini yazar. "Birisi admin hesabı vermiş, kimse fark etmemiş" senaryosunun cevabı bu. Acil durumlar için `GUARD_ALLOW_OVERPRIVILEGED=1` ile geçilebilir; kayıt tutulur.
 
 Tavsiye edilen kurulum: Splunk'ta `user`'dan türeyen, ek yetkisi olmayan bir rol (`mcp_reader`) ve o rolü taşıyan bir servis hesabı (`mcp_svc`). Hem MCP sunucusu hem guard bu hesabı kullanır.
 

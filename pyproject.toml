@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "splunk-mcp-guard"
-version = "0.1.0"
+version = "0.1.1"
 description = "Policy-enforcing proxy that sits in front of any Splunk MCP server: per-principal tool policy, Splunk-parser-backed SPL inspection, human approval for writes, audit log, untrusted-output tagging."
 readme = "README.md"
 license = { file = "LICENSE" }
